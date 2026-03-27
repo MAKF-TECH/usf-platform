@@ -62,3 +62,32 @@ def sync_ontology_module(
             raise self.retry(exc=exc)
         except self.MaxRetriesExceededError:
             return {"status": "failed", "error": str(exc)}
+
+
+@app.task(
+    name="usf_worker.tasks.ontology.sync_industry_modules",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=120,
+    acks_late=True,
+)
+def sync_industry_modules(self: Task) -> dict:
+    """
+    Idempotent weekly task: sync all active industry ontology modules (FIBO, CIM, FHIR).
+    Dispatches sync_ontology_module per module.
+    """
+    INDUSTRY_MODULES = ["fibo", "cim", "fhir"]
+    logger.info("sync_industry_modules started", extra={"modules": INDUSTRY_MODULES})
+    try:
+        dispatched = []
+        for module_id in INDUSTRY_MODULES:
+            sync_ontology_module.delay(module_id=module_id, force_reload=False)
+            dispatched.append(module_id)
+        logger.info(f"sync_industry_modules: dispatched {len(dispatched)} sync tasks")
+        return {"status": "success", "dispatched": dispatched}
+    except Exception as exc:
+        logger.error(f"sync_industry_modules failed: {exc}")
+        try:
+            raise self.retry(exc=exc)
+        except self.MaxRetriesExceededError:
+            return {"status": "failed", "error": str(exc)}

@@ -194,3 +194,39 @@ def ingest_document(
             result["status"] = "failed"
             result["error"] = str(exc)
             return result
+
+
+@app.task(
+    name="usf_worker.tasks.ingest.check_schema_drift",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=120,
+    acks_late=True,
+)
+def check_schema_drift(self: Task) -> dict:
+    """
+    Idempotent schema drift detection task.
+
+    Compares current PostgreSQL schema against last-known dlt schema state.
+    If drift is detected, emits a warning log and records the deviation.
+    """
+    logger.info("check_schema_drift started")
+    try:
+        response = httpx.post(
+            f"{INGEST_SERVICE_URL}/internal/schema-drift-check",
+            timeout=120,
+        )
+        response.raise_for_status()
+        result = response.json()
+        drifts = result.get("drifts", [])
+        if drifts:
+            logger.warning("Schema drift detected", extra={"drifts": drifts})
+        else:
+            logger.info("No schema drift detected")
+        return {"status": "success", "drifts": drifts}
+    except Exception as exc:
+        logger.error(f"check_schema_drift failed: {exc}")
+        try:
+            raise self.retry(exc=exc)
+        except self.MaxRetriesExceededError:
+            return {"status": "failed", "error": str(exc)}

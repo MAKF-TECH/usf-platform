@@ -1,0 +1,114 @@
+[
+  {
+    "text": "Unit 3 at Drax Power Station is a 660 MW coal-fired GeneratingUnit (CIM mRID: 4d7a1bc3-e8f2-4a9d-b1c5-9f3a2d6e8b4c) currently operating at 85% capacity factor with a minimum operating point of 200 MW.",
+    "extractions": [
+      {
+        "class": "cim:GeneratingUnit",
+        "text": "Unit 3 at Drax Power Station",
+        "attributes": {
+          "mRID": "4d7a1bc3-e8f2-4a9d-b1c5-9f3a2d6e8b4c",
+          "ratedNetMaxP": 660,
+          "ratedNetMaxP_unit": "MW",
+          "minOperatingP": 200,
+          "minOperatingP_unit": "MW",
+          "normalPF": 0.85,
+          "type": "ThermalGeneratingUnit",
+          "fuelType": "coal"
+        }
+      }
+    ]
+  },
+  {
+    "text": "The 400/132 kV PowerTransformer T12 (asset ID: SGT-T12-NW) at Supergrid substation Deeside has a rated capacity of 1000 MVA, vector group YNd11, and was commissioned in March 2015. Its primary winding impedance is 12% on 1000 MVA base.",
+    "extractions": [
+      {
+        "class": "cim:PowerTransformer",
+        "text": "PowerTransformer T12",
+        "attributes": {
+          "mRID": "SGT-T12-NW",
+          "name": "T12",
+          "location": "Deeside Supergrid Substation",
+          "ratedS": 1000,
+          "ratedS_unit": "MVA",
+          "vectorGroup": "YNd11",
+          "commissionDate": "2015-03",
+          "impedancePercent": 12.0,
+          "highSideVoltage_kV": 400,
+          "lowSideVoltage_kV": 132
+        }
+      }
+    ]
+  },
+  {
+    "text": "The 132 kV overhead ACLine L4521 (mRID: c9e2f441-7a3b-4d5e-a6f8-2b9c1d4e7f0a) runs from Pembroke to Swansea West, total length 48.3 km, conductor type ACSR Drake, rated at 387 A continuous.",
+    "extractions": [
+      {
+        "class": "cim:ACLineSegment",
+        "text": "ACLine L4521",
+        "attributes": {
+          "mRID": "c9e2f441-7a3b-4d5e-a6f8-2b9c1d4e7f0a",
+          "name": "L4521",
+          "length": 48.3,
+          "length_unit": "km",
+          "nominalVoltage_kV": 132,
+          "conductorType": "ACSR Drake",
+          "ratedCurrent_A": 387,
+          "fromSubstation": "Pembroke",
+          "toSubstation": "Swansea West"
+        }
+      }
+    ]
+  },
+  {
+    "text": "Sizewell B Nuclear Power Plant (CIM mRID: b3f5e291-1a4c-4b6d-8e7f-3c2a5d9f1e6b) is a pressurised water reactor GeneratingUnit with a gross installed capacity of 1198 MW, connected to the 400 kV transmission network at a single Grid Supply Point.",
+    "extractions": [
+      {
+        "class": "cim:GeneratingUnit",
+        "text": "Sizewell B Nuclear Power Plant",
+        "attributes": {
+          "mRID": "b3f5e291-1a4c-4b6d-8e7f-3c2a5d9f1e6b",
+          "type": "NuclearGeneratingUnit",
+          "ratedNetMaxP": 1198,
+          "ratedNetMaxP_unit": "MW",
+          "nominalVoltage_kV": 400,
+          "fuelType": "nuclear",
+          "reactorType": "PWR"
+        }
+      }
+    ]
+  },
+  {
+    "text": "Bay 7 at Thorpe Marsh 275 kV Substation contains a Breaker (mRID: d1e8c324-5b6a-4f7e-9d2c-1a3f5b8e0c4d), a Disconnector on the busbar side, and a Disconnector on the line side, all forming a standard dead-tank breaker-and-a-half configuration.",
+    "extractions": [
+      {
+        "class": "cim:Breaker",
+        "text": "Breaker (mRID: d1e8c324-5b6a-4f7e-9d2c-1a3f5b8e0c4d)",
+        "attributes": {
+          "mRID": "d1e8c324-5b6a-4f7e-9d2c-1a3f5b8e0c4d",
+          "location": "Thorpe Marsh Substation Bay 7",
+          "nominalVoltage_kV": 275,
+          "breakerConfiguration": "dead-tank",
+          "bayConfiguration": "breaker-and-a-half"
+        }
+      },
+      {
+        "class": "cim:Disconnector",
+        "text": "Disconnector on the busbar side",
+        "attributes": {
+          "location": "Thorpe Marsh Substation Bay 7",
+          "side": "busbar",
+          "nominalVoltage_kV": 275
+        }
+      },
+      {
+        "class": "cim:Disconnector",
+        "text": "Disconnector on the line side",
+        "attributes": {
+          "location": "Thorpe Marsh Substation Bay 7",
+          "side": "line",
+          "nominalVoltage_kV": 275
+        }
+      }
+    ]
+  }
+]

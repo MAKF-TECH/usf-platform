@@ -31,3 +31,31 @@ async def write_audit_log(
         },
     )
     return log
+
+
+async def write_query_audit(
+    session: AsyncSession,
+    tenant_id: str,
+    user_id: str | None,
+    context: str | None,
+    query_hash: str,
+    prov_graph_uri: str,
+    metadata: dict | None = None,
+) -> AuditLog:
+    """
+    Append-only audit entry for a semantic query execution.
+    Called by usf-api after every query.
+    Stores the PROV-O graph URI as resource_iri for regulatory traceability.
+    """
+    payload = AuditLogCreate(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        context=context,
+        action=AuditAction.QUERY,
+        status=AuditStatus.SUCCESS,
+        query_hash=query_hash,
+        resource_iri=prov_graph_uri,
+        prov_jsonld={"prov_graph": prov_graph_uri},
+        metadata=metadata or {},
+    )
+    return await write_audit_log(session, payload)

@@ -102,6 +102,31 @@ class SHACLViolationError(KGError):
     code = "SHACL_VIOLATION"
     http_status = 422
 
+class SHACLValidationError(KGError):
+    """Alias used in master-plan; raised when a set of triples fails SHACL validation."""
+    code = "SHACL_VALIDATION_ERROR"
+    http_status = 422
+
+class OntologyLoadError(KGError):
+    """Raised when an industry ontology module fails to load or parse."""
+    code = "ONTOLOGY_LOAD_ERROR"
+    http_status = 500
+
+class EntityResolutionError(KGError):
+    """Raised when entity IRI resolution / deduplication fails."""
+    code = "ENTITY_RESOLUTION_ERROR"
+    http_status = 500
+
+class ABACDeniedError(AccessDeniedError):
+    """Raised by the OPA ABAC check when access is explicitly denied."""
+    code = "ABAC_DENIED"
+    http_status = 403
+
+class SDLCompileError(SDLCompilationError):
+    """Alias used in master-plan; raised when SDL→OWL/SQL/R2RML compilation fails."""
+    code = "SDL_COMPILE_ERROR"
+    http_status = 500
+
 class DependencyUnavailableError(USFError):
     code = "DEPENDENCY_UNAVAILABLE"
     http_status = 503
