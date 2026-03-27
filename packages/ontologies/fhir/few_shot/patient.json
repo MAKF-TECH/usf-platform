@@ -1,0 +1,32 @@
+[
+  {
+    "text": "Patient: John Smith, DOB: 15/03/1978, MRN: 1234567, Male. Presenting complaint: chest pain radiating to left arm for 3 hours. Allergies: Penicillin (anaphylaxis), Aspirin (GI intolerance).",
+    "extractions": [
+      {"class": "fhir:Patient", "text": "John Smith", "attributes": {"mrn": "1234567", "date_of_birth": "1978-03-15", "gender": "male", "allergies": ["Penicillin:anaphylaxis", "Aspirin:GI_intolerance"]}}
+    ]
+  },
+  {
+    "text": "A 65-year-old female patient (ID: P-9876543) with a history of type 2 diabetes mellitus and hypertension was admitted for elective coronary angiography.",
+    "extractions": [
+      {"class": "fhir:Patient", "text": "65-year-old female patient (ID: P-9876543)", "attributes": {"patient_id": "P-9876543", "age": "65", "gender": "female", "conditions": ["type2_diabetes", "hypertension"], "admission_type": "elective"}}
+    ]
+  },
+  {
+    "text": "Pt: Maria Garcia, 42F, NHS No. 987 654 3210. No known drug allergies (NKDA). Smoker: ex-smoker (quit 2019). BMI: 28.4.",
+    "extractions": [
+      {"class": "fhir:Patient", "text": "Maria Garcia", "attributes": {"nhs_number": "9876543210", "age": "42", "gender": "female", "drug_allergies": "NKDA", "smoking_status": "ex-smoker", "bmi": "28.4"}}
+    ]
+  },
+  {
+    "text": "Neonate, male, 2 days old. Birth weight 3.4 kg. Born at 38+2 weeks gestation by elective C-section to Ms. Thompson (mother, DOB 14/07/1990). Apgar scores 8/9.",
+    "extractions": [
+      {"class": "fhir:Patient", "text": "Neonate, male, 2 days old", "attributes": {"age_days": "2", "gender": "male", "birth_weight_kg": "3.4", "gestational_age_weeks": "38.3", "delivery_method": "elective_c_section", "apgar_1min": "8", "apgar_5min": "9"}}
+    ]
+  },
+  {
+    "text": "Emergency admission: Patient BLOGGS, Joseph, 78M, DOB 03/11/1945, NHS 123 456 7890. Lives alone. Next of kin: daughter Sarah Bloggs (07712 345678). Advance directive on file.",
+    "extractions": [
+      {"class": "fhir:Patient", "text": "BLOGGS, Joseph", "attributes": {"nhs_number": "1234567890", "age": "78", "gender": "male", "date_of_birth": "1945-11-03", "living_arrangement": "alone", "advance_directive": "true", "next_of_kin_name": "Sarah Bloggs", "next_of_kin_phone": "07712345678"}}
+    ]
+  }
+]

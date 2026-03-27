@@ -1,0 +1,40 @@
+[
+  {
+    "text": "Vital signs on admission (14:32 hrs): BP 145/92 mmHg, HR 88 bpm (regular), RR 18/min, SpO2 96% on room air, Temp 37.2°C, Weight 84 kg.",
+    "extractions": [
+      {"class": "fhir:Observation", "text": "BP 145/92 mmHg", "attributes": {"observation_type": "BloodPressure", "systolic_value": "145", "diastolic_value": "92", "unit": "mmHg", "observation_time": "14:32", "status": "final"}},
+      {"class": "fhir:Observation", "text": "HR 88 bpm (regular)", "attributes": {"observation_type": "HeartRate", "value": "88", "unit": "bpm", "rhythm": "regular", "status": "final"}},
+      {"class": "fhir:Observation", "text": "SpO2 96% on room air", "attributes": {"observation_type": "OxygenSaturation", "value": "96", "unit": "%", "inspired_oxygen": "room_air", "status": "final"}}
+    ]
+  },
+  {
+    "text": "Laboratory results (15/03/2024): Hb 11.2 g/dL (ref: 13.0-17.0), WBC 12.4 × 10⁹/L (ref: 4.0-11.0) — elevated, CRP 84 mg/L (ref: <5), eGFR 45 mL/min/1.73m² — reduced.",
+    "extractions": [
+      {"class": "fhir:Observation", "text": "Hb 11.2 g/dL", "attributes": {"observation_type": "Haemoglobin", "loinc": "718-7", "value": "11.2", "unit": "g/dL", "reference_range": "13.0-17.0", "interpretation": "low", "observation_date": "2024-03-15"}},
+      {"class": "fhir:Observation", "text": "WBC 12.4 × 10⁹/L", "attributes": {"observation_type": "WhiteBloodCellCount", "loinc": "6690-2", "value": "12.4", "unit": "10^9/L", "reference_range": "4.0-11.0", "interpretation": "high"}},
+      {"class": "fhir:Observation", "text": "CRP 84 mg/L", "attributes": {"observation_type": "CReactiveProtein", "loinc": "1988-5", "value": "84", "unit": "mg/L", "reference_range": "<5", "interpretation": "high"}}
+    ]
+  },
+  {
+    "text": "ECG interpretation: sinus rhythm at 72 bpm, PR interval 180 ms (normal), QRS duration 110 ms (borderline), ST elevation 2 mm in leads II, III, aVF — consistent with inferior STEMI.",
+    "extractions": [
+      {"class": "fhir:Observation", "text": "sinus rhythm at 72 bpm", "attributes": {"observation_type": "ECGRhythm", "value": "sinus_rhythm", "heart_rate": "72", "unit": "bpm"}},
+      {"class": "fhir:Observation", "text": "ST elevation 2 mm in leads II, III, aVF", "attributes": {"observation_type": "STElevation", "value": "2", "unit": "mm", "leads": ["II", "III", "aVF"], "clinical_significance": "inferior_STEMI"}}
+    ]
+  },
+  {
+    "text": "Random plasma glucose: 14.2 mmol/L. HbA1c: 72 mmol/mol (8.7%). Both values indicate poor glycaemic control. Urine dipstick: glucose 3+, ketones trace.",
+    "extractions": [
+      {"class": "fhir:Observation", "text": "Random plasma glucose: 14.2 mmol/L", "attributes": {"observation_type": "PlasmaGlucose", "loinc": "2345-7", "value": "14.2", "unit": "mmol/L", "interpretation": "high"}},
+      {"class": "fhir:Observation", "text": "HbA1c: 72 mmol/mol (8.7%)", "attributes": {"observation_type": "HbA1c", "loinc": "4548-4", "value_mmol": "72", "value_percent": "8.7", "interpretation": "poor_glycaemic_control"}}
+    ]
+  },
+  {
+    "text": "MMSE score: 22/30 (mild cognitive impairment). PHQ-9 depression score: 14 (moderate depression). Pain score (NRS): 7/10 at rest.",
+    "extractions": [
+      {"class": "fhir:Observation", "text": "MMSE score: 22/30", "attributes": {"observation_type": "MiniMentalStateExamination", "loinc": "72106-8", "value": "22", "max_score": "30", "interpretation": "mild_cognitive_impairment"}},
+      {"class": "fhir:Observation", "text": "PHQ-9 depression score: 14", "attributes": {"observation_type": "PHQ9", "loinc": "44261-6", "value": "14", "interpretation": "moderate_depression"}},
+      {"class": "fhir:Observation", "text": "Pain score (NRS): 7/10 at rest", "attributes": {"observation_type": "PainScore", "scale": "NRS", "value": "7", "max_score": "10", "context": "at_rest"}}
+    ]
+  }
+]
