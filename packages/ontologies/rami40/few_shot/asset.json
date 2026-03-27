@@ -1,0 +1,106 @@
+[
+  {
+    "text": "The CNC machining centre HAAS VF-4SS (serial number 1234567, asset ID: MFG-VF4SS-007) at production cell PC-03 is classified as a manufacturing asset under RAMI 4.0. It was commissioned on 2021-06-15, has a design life of 20 years, and its Asset Administration Shell ID is urn:aas:plant-alpha:VF4SS-007.",
+    "extractions": [
+      {
+        "class": "aas:Asset",
+        "text": "CNC machining centre HAAS VF-4SS",
+        "attributes": {
+          "assetId": "MFG-VF4SS-007",
+          "serialNumber": "1234567",
+          "aasId": "urn:aas:plant-alpha:VF4SS-007",
+          "manufacturer": "Haas Automation",
+          "model": "VF-4SS",
+          "location": "Production Cell PC-03",
+          "commissionDate": "2021-06-15",
+          "designLifeYears": 20,
+          "assetKind": "Instance",
+          "category": "MachiningCentre"
+        }
+      }
+    ]
+  },
+  {
+    "text": "Conveyor belt assembly CBU-12 (asset ID: CONV-CBU-012, AAS ID: urn:aas:plant-beta:CBU-012) transports automotive body panels between welding station W-04 and paint shop entry PE-01. Rated belt speed: 0.4 m/s. Motor: 7.5 kW ABB M3AA 160MA 4-pole.",
+    "extractions": [
+      {
+        "class": "aas:Asset",
+        "text": "Conveyor belt assembly CBU-12",
+        "attributes": {
+          "assetId": "CONV-CBU-012",
+          "aasId": "urn:aas:plant-beta:CBU-012",
+          "fromStation": "Welding Station W-04",
+          "toStation": "Paint Shop Entry PE-01",
+          "ratedBeltSpeed_m_s": 0.4,
+          "motorPower_kW": 7.5,
+          "motorModel": "ABB M3AA 160MA 4-pole",
+          "assetKind": "Instance",
+          "category": "Conveyor"
+        }
+      }
+    ]
+  },
+  {
+    "text": "The industrial robot arm KUKA KR 210 R3100 (serial: KR210-0234, AAS ID: urn:aas:plant-alpha:KR210-0234) installed at spot-welding cell SW-07 has a maximum payload of 210 kg, reach of 3100 mm, and is integrated with the plant's MES via OPC-UA endpoint opc.tcp://10.0.5.12:4840.",
+    "extractions": [
+      {
+        "class": "aas:Asset",
+        "text": "industrial robot arm KUKA KR 210 R3100",
+        "attributes": {
+          "assetId": "KR210-0234",
+          "aasId": "urn:aas:plant-alpha:KR210-0234",
+          "manufacturer": "KUKA Robotics",
+          "model": "KR 210 R3100",
+          "location": "Spot-Welding Cell SW-07",
+          "maxPayload_kg": 210,
+          "reach_mm": 3100,
+          "opcUaEndpoint": "opc.tcp://10.0.5.12:4840",
+          "integration": "MES via OPC-UA",
+          "assetKind": "Instance",
+          "category": "IndustrialRobot"
+        }
+      }
+    ]
+  },
+  {
+    "text": "Air compressor station ACS-02 (asset ID: UTIL-ACS-002, plant: Hamburg Facility 1) comprises three Atlas Copco GA 132 VSD+ compressors providing compressed air at 8.5 bar to the production floor. The asset is managed under ISO 55001 maintenance programme ref. MP-ACS-002.",
+    "extractions": [
+      {
+        "class": "aas:Asset",
+        "text": "Air compressor station ACS-02",
+        "attributes": {
+          "assetId": "UTIL-ACS-002",
+          "plant": "Hamburg Facility 1",
+          "manufacturer": "Atlas Copco",
+          "model": "GA 132 VSD+",
+          "quantity": 3,
+          "ratedPressure_bar": 8.5,
+          "maintenanceProgramme": "MP-ACS-002",
+          "maintenanceStandard": "ISO 55001",
+          "assetKind": "Instance",
+          "category": "UtilitySystem"
+        }
+      }
+    ]
+  },
+  {
+    "text": "The PLC cabinet controlling automated guided vehicle AGV-Fleet-01 (asset ID: AGV-CTRL-001, AAS ID: urn:aas:plant-gamma:AGV-CTRL-001) uses a Siemens S7-1500 CPU 1516-3 PN/DP, firmware v2.9.2, and manages a fleet of 6 AGVs via PROFINET IO.",
+    "extractions": [
+      {
+        "class": "aas:Asset",
+        "text": "PLC cabinet controlling automated guided vehicle AGV-Fleet-01",
+        "attributes": {
+          "assetId": "AGV-CTRL-001",
+          "aasId": "urn:aas:plant-gamma:AGV-CTRL-001",
+          "manufacturer": "Siemens",
+          "model": "S7-1500 CPU 1516-3 PN/DP",
+          "firmwareVersion": "v2.9.2",
+          "protocol": "PROFINET IO",
+          "managedAssets": 6,
+          "assetKind": "Instance",
+          "category": "ControlSystem"
+        }
+      }
+    ]
+  }
+]
