@@ -1,0 +1,49 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'usf-api'
+    static_configs:
+      - targets: ['usf-api:8000']
+    metrics_path: /metrics
+
+  - job_name: 'usf-query'
+    static_configs:
+      - targets: ['usf-query:8001']
+    metrics_path: /metrics
+
+  - job_name: 'usf-kg'
+    static_configs:
+      - targets: ['usf-kg:8002']
+    metrics_path: /metrics
+
+  - job_name: 'usf-ingest'
+    static_configs:
+      - targets: ['usf-ingest:8003']
+    metrics_path: /metrics
+
+  - job_name: 'usf-sdl'
+    static_configs:
+      - targets: ['usf-sdl:8004']
+    metrics_path: /metrics
+
+  - job_name: 'usf-mcp'
+    static_configs:
+      - targets: ['usf-mcp:8005']
+    metrics_path: /metrics
+
+  - job_name: 'usf-audit'
+    static_configs:
+      - targets: ['usf-audit:8006']
+    metrics_path: /metrics
+
+  - job_name: 'opa'
+    static_configs:
+      - targets: ['opa:8181']
+    metrics_path: /metrics
+
+  - job_name: 'redpanda'
+    static_configs:
+      - targets: ['redpanda:9644']
+    metrics_path: /metrics/consumer_offsets
