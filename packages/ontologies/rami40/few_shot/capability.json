@@ -1,0 +1,100 @@
+[
+  {
+    "text": "According to preventive maintenance procedure PM-VF4SS-007 (rev. 3), the CNC machining centre HAAS VF-4SS must perform spindle calibration at intervals not exceeding 1000 operating hours. The procedure requires: spindle warm-up (30 min), axis ballbar test (ISO 230-4), and laser calibration of all 5 axes. Estimated duration: 4 hours.",
+    "extractions": [
+      {
+        "class": "aas:Capability",
+        "text": "spindle calibration",
+        "attributes": {
+          "capabilityName": "SpindleCalibration",
+          "assetId": "MFG-VF4SS-007",
+          "maintenanceProcedure": "PM-VF4SS-007 rev. 3",
+          "triggerType": "usage-hours",
+          "triggerInterval_h": 1000,
+          "steps": ["spindle warm-up 30 min", "axis ballbar test ISO 230-4", "laser calibration 5 axes"],
+          "estimatedDuration_h": 4,
+          "standardReference": "ISO 230-4",
+          "capabilityType": "MaintenanceCapability"
+        }
+      }
+    ]
+  },
+  {
+    "text": "Maintenance procedure MP-CONV-012 (section 4.2) specifies that conveyor CBU-12 possesses the capability of emergency stop response within 0.5 seconds of safety PLC signal activation. The E-stop test is mandatory after every belt replacement or motor overhaul.",
+    "extractions": [
+      {
+        "class": "aas:Capability",
+        "text": "emergency stop response",
+        "attributes": {
+          "capabilityName": "EmergencyStopResponse",
+          "assetId": "CONV-CBU-012",
+          "maintenanceProcedure": "MP-CONV-012",
+          "section": "4.2",
+          "responseTime_s": 0.5,
+          "triggerEvent": "Safety PLC signal activation",
+          "mandatoryAfter": ["belt replacement", "motor overhaul"],
+          "capabilityType": "SafetyCapability"
+        }
+      }
+    ]
+  },
+  {
+    "text": "The KUKA KR 210 R3100 robot is qualified for collaborative operation in restricted speed mode (ISO/TS 15066) with a monitored tool-centre-point speed limit of 250 mm/s and a safety-rated stop time < 100 ms as verified in risk assessment RA-SW07-2023.",
+    "extractions": [
+      {
+        "class": "aas:Capability",
+        "text": "collaborative operation in restricted speed mode",
+        "attributes": {
+          "capabilityName": "CollaborativeOperationRestrictedSpeed",
+          "assetId": "KR210-0234",
+          "standardReference": "ISO/TS 15066",
+          "maxTCPSpeed_mm_s": 250,
+          "safetyStopTime_ms": 100,
+          "riskAssessmentRef": "RA-SW07-2023",
+          "capabilityType": "CollaborationCapability"
+        }
+      }
+    ]
+  },
+  {
+    "text": "Routine inspection procedure INS-ACS-002-Q (quarterly) verifies that air compressor ACS-02 retains pressure regulation capability within ±0.2 bar of setpoint 8.5 bar under full production load. Test includes: load test at 100% capacity for 2 hours, pressure gauge calibration, and safety valve pop-test.",
+    "extractions": [
+      {
+        "class": "aas:Capability",
+        "text": "pressure regulation capability",
+        "attributes": {
+          "capabilityName": "PressureRegulation",
+          "assetId": "UTIL-ACS-002",
+          "maintenanceProcedure": "INS-ACS-002-Q",
+          "frequency": "quarterly",
+          "setpointPressure_bar": 8.5,
+          "tolerancePressure_bar": 0.2,
+          "testDuration_h": 2,
+          "testLoad_pct": 100,
+          "testSteps": ["load test 100% 2h", "pressure gauge calibration", "safety valve pop-test"],
+          "capabilityType": "ProcessCapability"
+        }
+      }
+    ]
+  },
+  {
+    "text": "Per maintenance schedule MS-AGV-2024 (section 7), AGV controller AGV-CTRL-001 must support fleet path re-planning in under 200 ms to accommodate dynamic obstacles detected by the AGV LiDAR sensors. This capability is validated quarterly using AGV Simulator Test Suite v3.2.",
+    "extractions": [
+      {
+        "class": "aas:Capability",
+        "text": "fleet path re-planning",
+        "attributes": {
+          "capabilityName": "FleetPathReplanning",
+          "assetId": "AGV-CTRL-001",
+          "maintenanceSchedule": "MS-AGV-2024",
+          "section": "7",
+          "replanningLatency_ms": 200,
+          "triggerCondition": "dynamic obstacle detected by LiDAR",
+          "validationFrequency": "quarterly",
+          "validationTool": "AGV Simulator Test Suite v3.2",
+          "capabilityType": "OperationalCapability"
+        }
+      }
+    ]
+  }
+]

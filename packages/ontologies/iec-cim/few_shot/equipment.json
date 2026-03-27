@@ -87,8 +87,7 @@
           "mRID": "d1e8c324-5b6a-4f7e-9d2c-1a3f5b8e0c4d",
           "location": "Thorpe Marsh Substation Bay 7",
           "nominalVoltage_kV": 275,
-          "breakerConfiguration": "dead-tank",
-          "bayConfiguration": "breaker-and-a-half"
+          "breakerConfiguration": "dead-tank"
         }
       },
       {

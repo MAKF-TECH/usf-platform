@@ -54,27 +54,13 @@
     ]
   },
   {
-    "text": "Reactive power on the 132 kV busbar at Ironbridge substation is measured by two Analog sensors (mRIDs: 3b9f2c40-7e1a-4d6b-8c5f-2a0e9d3b7f1c and 8c4a5e72-1d3f-4b8e-a9c2-6f0b3d5e7a2d) in parallel, both with a range of −600 to +600 MVAr, resolution 0.1 MVAr.",
+    "text": "Reactive power on the 132 kV busbar at Ironbridge substation is measured by an Analog sensor (mRID: 3b9f2c40-7e1a-4d6b-8c5f-2a0e9d3b7f1c) with a range of −600 to +600 MVAr, resolution 0.1 MVAr.",
     "extractions": [
       {
         "class": "cim:Analog",
-        "text": "Analog sensors (mRIDs: 3b9f2c40-7e1a-4d6b-8c5f-2a0e9d3b7f1c",
+        "text": "Analog sensor (mRID: 3b9f2c40-7e1a-4d6b-8c5f-2a0e9d3b7f1c)",
         "attributes": {
           "mRID": "3b9f2c40-7e1a-4d6b-8c5f-2a0e9d3b7f1c",
-          "measurementType": "ReactivePower",
-          "unitSymbol": "VAr",
-          "unitMultiplier": "M",
-          "minValue": -600,
-          "maxValue": 600,
-          "resolution": 0.1,
-          "location": "Ironbridge Substation 132 kV Busbar"
-        }
-      },
-      {
-        "class": "cim:Analog",
-        "text": "8c4a5e72-1d3f-4b8e-a9c2-6f0b3d5e7a2d",
-        "attributes": {
-          "mRID": "8c4a5e72-1d3f-4b8e-a9c2-6f0b3d5e7a2d",
           "measurementType": "ReactivePower",
           "unitSymbol": "VAr",
           "unitMultiplier": "M",
