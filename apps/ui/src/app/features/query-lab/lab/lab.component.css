@@ -1,0 +1,21 @@
+:host { display: block; }
+.lab-root { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; }
+.page-title { font-size: var(--text-2xl); font-weight: 700; margin: 0; }
+.query-editor-card { display: flex; flex-direction: column; }
+.query-textarea {
+  background: var(--usf-bg);
+  color: var(--usf-text-primary);
+  border: none;
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  min-height: 120px;
+  tab-size: 2;
+}
+.query-actions { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--usf-border); }
+.results-section { display: flex; flex-direction: column; gap: 16px; }
+.spinner-sm { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }

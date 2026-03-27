@@ -1,0 +1,39 @@
+<div class="audit-root">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Audit Log</h1>
+      <p class="text-sm text-muted">{{ entries().length }} entries · PROV-O compliant</p>
+    </div>
+    <button class="btn btn-primary" (click)="exportRdf()">📥 Export to RDF</button>
+  </div>
+
+  <div class="card" style="overflow-x:auto">
+    <table class="usf-table">
+      <thead>
+        <tr>
+          <th></th><th>Timestamp</th><th>Action</th><th>User</th><th>Context</th><th>Resource</th><th>Decision</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (entry of entries(); track entry.id) {
+          <tr (click)="toggleExpand(entry.id)" style="cursor:pointer" [class.selected]="expandedId() === entry.id">
+            <td><span class="expand-icon" [class.open]="expandedId() === entry.id">▸</span></td>
+            <td class="text-xs text-muted">{{ entry.timestamp | relativeTime }}</td>
+            <td><span class="badge badge-neutral">{{ entry.action }}</span></td>
+            <td class="font-mono text-xs">{{ entry.user }}</td>
+            <td><span class="badge badge-info">{{ entry.context }}</span></td>
+            <td class="font-mono text-xs">{{ entry.resource }}</td>
+            <td><span class="badge" [class]="decisionClass(entry.decision)">{{ entry.decision | uppercase }}</span></td>
+          </tr>
+          @if (expandedId() === entry.id && entry.provenance) {
+            <tr class="prov-row animate-in">
+              <td colspan="7" style="padding:16px 24px;background:var(--usf-surface-2)">
+                <usf-prov-o-panel [provenance]="entry.provenance" />
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

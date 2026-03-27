@@ -1,0 +1,10 @@
+:host { display: block; }
+.monitor-root { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+.page-header { display: flex; align-items: center; gap: 12px; }
+.page-title { font-size: var(--text-2xl); font-weight: 700; margin: 0; }
+.monitor-layout { display: flex; gap: 16px; }
+.jobs-panel { flex: 1; overflow-x: auto; }
+.detail-panel { width: 380px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
+tr.selected td { background: rgba(59,91,219,0.08); }
+.progress-mini { height: 3px; background: var(--usf-surface-2); border-radius: 2px; overflow: hidden; width: 60px; margin-top: 4px; }
+.progress-mini div { height: 100%; background: var(--usf-info); border-radius: 2px; transition: width 0.4s; }

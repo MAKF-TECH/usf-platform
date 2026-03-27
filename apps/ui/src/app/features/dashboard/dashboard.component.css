@@ -1,0 +1,23 @@
+:host { display: block; }
+.dashboard-root { padding: 24px; display: flex; flex-direction: column; gap: 20px; height: 100%; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.page-title { font-size: var(--text-2xl); font-weight: 700; margin: 0 0 4px; }
+.header-badges { display: flex; gap: 8px; padding-top: 4px; }
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-card { display: flex; flex-direction: column; gap: 8px; }
+.stat-header { display: flex; align-items: center; gap: 8px; }
+.stat-icon { font-size: 18px; }
+.stat-value { font-size: var(--text-2xl); font-weight: 700; }
+.stat-trend { }
+.main-row { display: flex; gap: 16px; min-height: 360px; }
+.kg-preview { padding: 20px; display: flex; flex-direction: column; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.section-title { font-weight: 600; font-size: var(--text-sm); }
+.kg-container { flex: 1; min-height: 280px; }
+.activity-feed { padding: 20px; display: flex; flex-direction: column; }
+.feed-list { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.feed-item { display: flex; align-items: flex-start; gap: 12px; }
+.feed-icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; padding-top: 1px; }
+.feed-content { flex: 1; }
+.charts-row { display: flex; gap: 16px; }
+.chart-card { padding: 20px; display: flex; flex-direction: column; }

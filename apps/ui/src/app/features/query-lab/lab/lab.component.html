@@ -1,0 +1,73 @@
+<div class="lab-root">
+  <div class="page-header">
+    <h1 class="page-title">Query Lab</h1>
+    <span class="badge badge-neutral">Context: risk</span>
+  </div>
+
+  <!-- Query tabs -->
+  <div class="tab-bar">
+    @for (tab of tabs; track tab) {
+      <button class="tab" [class.active]="activeTab() === tab" (click)="switchTab(tab)">
+        {{ tab | uppercase }}
+      </button>
+    }
+  </div>
+
+  <!-- Query editor -->
+  <div class="card query-editor-card">
+    <textarea
+      class="query-textarea font-mono"
+      [value]="queryInput()"
+      (input)="queryInput.set($any($event.target).value)"
+      spellcheck="false"
+      [placeholder]="'Enter your ' + activeTab() + ' query...'"
+    ></textarea>
+    <div class="query-actions">
+      <button class="btn btn-primary" (click)="execute()" [disabled]="isLoading()">
+        @if (isLoading()) {
+          <span class="spinner-sm"></span> Executing...
+        } @else {
+          ▶ Execute
+        }
+      </button>
+      @if (result()?.executionTimeMs) {
+        <span class="text-xs text-muted">{{ result()!.executionTimeMs }}ms · {{ result()!.rows.length }} rows</span>
+      }
+    </div>
+  </div>
+
+  <!-- Results -->
+  @if (result(); as r) {
+    <div class="results-section animate-in">
+      <div class="card" style="padding:16px;overflow-x:auto">
+        <table class="usf-table">
+          <thead>
+            <tr>
+              @for (col of r.columns; track col) {
+                <th>{{ col }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of r.rows; track $index) {
+              <tr>
+                @for (col of r.columns; track col) {
+                  <td>
+                    @if (isNumber(row[col])) {
+                      {{ $any(row[col]) | number }}
+                    } @else {
+                      {{ row[col] }}
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Layer Debug Panel -->
+      <usf-layer-debug-panel [trace]="r.layerTrace" />
+    </div>
+  }
+</div>
