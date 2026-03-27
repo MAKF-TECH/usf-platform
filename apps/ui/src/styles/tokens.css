@@ -1,0 +1,31 @@
+:root {
+  --usf-primary-500: #3b5bdb;
+  --usf-primary-600: #2f4abf;
+  --usf-success: #12b76a;
+  --usf-warning: #f79009;
+  --usf-error: #f04438;
+  --usf-info: #0ba5ec;
+  --usf-node-entity: #3b5bdb;
+  --usf-node-metric: #7c3aed;
+  --usf-node-event: #0ea5e9;
+  --usf-node-document: #f59e0b;
+  --usf-node-context: #10b981;
+  --usf-node-provenance: #6b7280;
+  --usf-bg: #0f1117;
+  --usf-surface-1: #1a1d27;
+  --usf-surface-2: #22263a;
+  --usf-surface-3: #2d3352;
+  --usf-border: #333750;
+  --usf-text-primary: #f1f3f9;
+  --usf-text-secondary: #9299b8;
+  --usf-text-muted: #5c6485;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px;
+  --space-4: 16px; --space-6: 24px; --space-8: 32px;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --text-xs: 11px; --text-sm: 13px; --text-base: 15px;
+  --text-lg: 17px; --text-xl: 20px; --text-2xl: 24px;
+  --text-3xl: 30px;
+  --radius-sm: 4px; --radius-md: 8px;
+  --radius-lg: 12px; --radius-xl: 16px;
+}

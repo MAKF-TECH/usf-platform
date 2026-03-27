@@ -1,0 +1,80 @@
+<div class="dashboard-root">
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+      <p class="text-sm text-muted">Acme Bank · FIBO-aligned knowledge graph</p>
+    </div>
+    <div class="header-badges">
+      <span class="badge badge-success">KG Health: 98%</span>
+      <span class="badge badge-neutral">Last ingestion: 2m ago</span>
+    </div>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="stat-grid">
+    @for (card of statCards; track card.label) {
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-icon" [style.color]="card.color">{{ card.icon }}</span>
+          <span class="text-xs text-muted">{{ card.label }}</span>
+        </div>
+        <div class="stat-value">{{ card.value }}</div>
+        <div class="stat-trend text-xs text-muted">{{ card.trend }}</div>
+      </div>
+    }
+  </div>
+
+  <!-- Main content row -->
+  <div class="main-row">
+    <!-- KG mini-preview -->
+    <div class="kg-preview card" style="flex:1.5">
+      <div class="section-header">
+        <span class="section-title">Knowledge Graph</span>
+        <a href="/kg-explorer" class="btn btn-ghost" style="font-size:var(--text-xs)">Open Explorer →</a>
+      </div>
+      <div class="kg-container">
+        <usf-graph-viewer
+          [nodes]="nodes()"
+          [edges]="edges()"
+          (nodeSelected)="selectedNodeIri.set($event)"
+          style="height:100%"
+        />
+      </div>
+    </div>
+
+    <!-- Activity feed -->
+    <div class="activity-feed card" style="flex:1">
+      <div class="section-header">
+        <span class="section-title">Recent Activity</span>
+      </div>
+      <div class="feed-list">
+        @for (item of activityFeed(); track item.text) {
+          <div class="feed-item">
+            <div class="feed-icon" [style.color]="item.color">{{ item.icon }}</div>
+            <div class="feed-content">
+              <div class="text-sm">{{ item.text }}</div>
+              <div class="text-xs text-muted">{{ item.time | relativeTime }}</div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="charts-row">
+    <div class="card chart-card" style="flex:2">
+      <div class="section-header">
+        <span class="section-title">Query Volume (7 days)</span>
+      </div>
+      <div echarts [options]="queryTrendOption" style="height:160px"></div>
+    </div>
+    <div class="card chart-card" style="flex:1">
+      <div class="section-header">
+        <span class="section-title">Context Usage</span>
+      </div>
+      <div echarts [options]="contextDonutOption" style="height:160px"></div>
+    </div>
+  </div>
+</div>

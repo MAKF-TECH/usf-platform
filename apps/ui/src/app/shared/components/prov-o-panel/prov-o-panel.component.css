@@ -1,0 +1,11 @@
+:host { display: block; }
+.prov-panel { display: flex; flex-direction: column; gap: 8px; }
+.prov-header { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.prov-icon { font-size: 16px; }
+.prov-entries { display: flex; flex-direction: column; gap: 6px; }
+.prov-row { display: flex; flex-direction: column; gap: 2px; }
+.prov-key { font-size: 11px; color: var(--usf-primary-500); }
+.prov-val { font-size: var(--text-sm); color: var(--usf-text-secondary); word-break: break-all; }
+.prov-empty { padding: 12px 0; }
+.prov-json-details { margin-top: 4px; }
+.prov-json-details summary { cursor: pointer; padding: 4px 0; }

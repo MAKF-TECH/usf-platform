@@ -1,0 +1,52 @@
+<div class="explorer-root">
+  <!-- Named graph sidebar -->
+  <aside class="ng-sidebar">
+    <div class="ng-header text-xs text-muted font-semibold">Named Graphs</div>
+    @for (g of namedGraphs(); track g.name) {
+      <div class="ng-item nav-item">
+        <span>{{ g.icon }}</span>
+        <div style="flex:1">
+          <div class="text-sm">{{ g.name }}</div>
+          <div class="text-xs text-muted">{{ g.triples | number }} triples</div>
+        </div>
+      </div>
+    }
+  </aside>
+
+  <!-- Main graph -->
+  <div class="graph-main">
+    <usf-graph-viewer
+      [nodes]="nodes()"
+      [edges]="edges()"
+      (nodeSelected)="onNodeSelected($event)"
+    />
+  </div>
+
+  <!-- Entity detail panel -->
+  @if (selectedEntity(); as entity) {
+    <aside class="entity-panel card animate-in">
+      <div class="entity-header">
+        <div class="entity-class badge badge-primary">{{ entity.ontologyClass }}</div>
+        <button class="btn-icon" style="width:24px;height:24px;font-size:12px" (click)="selectedIri.set(null); selectedEntity.set(null)">✕</button>
+      </div>
+      <h3 class="entity-label">{{ entity.label }}</h3>
+      <div class="entity-iri font-mono text-xs text-muted">{{ entity.iri | rdfCurie }}</div>
+
+      @if (entity.properties) {
+        <div class="entity-props">
+          <div class="text-xs text-muted font-semibold" style="margin-bottom:6px">Properties</div>
+          @for (prop of objectEntries(entity.properties); track prop[0]) {
+            <div class="prop-row">
+              <span class="prop-key font-mono text-xs">{{ prop[0] }}</span>
+              <span class="prop-val text-sm">{{ prop[1] }}</span>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="entity-prov">
+        <usf-prov-o-panel [provenance]="entityProvenance()" />
+      </div>
+    </aside>
+  }
+</div>

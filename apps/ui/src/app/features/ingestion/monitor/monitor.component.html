@@ -1,0 +1,53 @@
+<div class="monitor-root">
+  <div class="page-header">
+    <h1 class="page-title">Ingestion Monitor</h1>
+    <span class="badge badge-info">{{ jobs().length }} jobs</span>
+  </div>
+
+  <div class="monitor-layout">
+    <!-- Jobs table -->
+    <div class="card jobs-panel">
+      <table class="usf-table">
+        <thead>
+          <tr>
+            <th>Source</th><th>Type</th><th>Started</th><th>Triples</th><th>Confidence</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (job of jobs(); track job.id) {
+            <tr [class.selected]="selectedJob()?.id === job.id" (click)="selectedJob.set(job)" style="cursor:pointer">
+              <td>{{ job.source }}</td>
+              <td><span class="text-xs">{{ typeIcon(job.type) }} {{ job.type }}</span></td>
+              <td class="text-xs text-muted">{{ job.started | relativeTime }}</td>
+              <td>{{ job.triplesAdded | number }}</td>
+              <td>
+                @if (job.confidence > 0) {
+                  <span [style.color]="job.confidence >= 0.95 ? 'var(--usf-success)' : job.confidence >= 0.8 ? 'var(--usf-warning)' : 'var(--usf-error)'">
+                    {{ job.confidence | percent:'1.1-1' }}
+                  </span>
+                } @else { <span class="text-muted">—</span> }
+              </td>
+              <td>
+                <span class="badge" [class]="statusBadgeClass(job.status)">{{ job.status }}</span>
+                @if (job.status === 'running' && job.progress) {
+                  <div class="progress-mini"><div [style.width.%]="job.progress"></div></div>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Right panel: debug + histogram -->
+    @if (selectedJob()) {
+      <div class="detail-panel animate-in">
+        <usf-layer-debug-panel [trace]="selectedTrace()" />
+        <div class="card" style="padding:16px">
+          <div class="text-xs text-muted font-semibold" style="margin-bottom:8px">Confidence Histogram</div>
+          <div echarts [options]="confidenceHistogramOption()" style="height:180px"></div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

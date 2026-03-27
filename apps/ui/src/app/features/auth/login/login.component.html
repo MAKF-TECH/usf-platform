@@ -1,0 +1,71 @@
+<div class="login-page">
+  <div class="login-bg"></div>
+  <div class="login-card card animate-in">
+    <!-- Logo -->
+    <div class="login-logo">
+      <span class="logo-icon">◈</span>
+      <span class="logo-text">Universal Semantic Fabric</span>
+    </div>
+
+    <h1 class="login-title">Sign in</h1>
+    <p class="login-subtitle text-muted">Access your governed knowledge graph</p>
+
+    @if (error()) {
+      <div class="error-banner animate-in">
+        ⚠ {{ error() }}
+      </div>
+    }
+
+    <form class="login-form" (ngSubmit)="submit()">
+      <div class="form-field">
+        <label class="form-label">Email</label>
+        <input
+          type="email"
+          class="input w-full"
+          placeholder="analyst@acme-bank.com"
+          [value]="email()"
+          (input)="email.set($any($event.target).value)"
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Password</label>
+        <input
+          type="password"
+          class="input w-full"
+          placeholder="••••••••"
+          [value]="password()"
+          (input)="password.set($any($event.target).value)"
+          autocomplete="current-password"
+        />
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-primary w-full submit-btn"
+        [disabled]="isLoading()"
+      >
+        @if (isLoading()) {
+          <span class="spinner-sm"></span>
+          Signing in...
+        } @else {
+          Sign in
+        }
+      </button>
+    </form>
+
+    <div class="login-divider">
+      <span class="divider-text">or</span>
+    </div>
+
+    <button class="btn btn-ghost w-full sso-btn">
+      <span>🔐</span>
+      Sign in with SSO
+    </button>
+
+    <p class="login-footer text-xs text-muted">
+      USF v1.1 · FIBO-aligned · PROV-O compliant
+    </p>
+  </div>
+</div>

@@ -1,0 +1,48 @@
+<div class="ldp card">
+  <div class="ldp-hdr" (click)="expanded.set(!expanded())">
+    <span class="text-sm font-semibold">⚙ Layer Debug Panel</span>
+    @if (trace()?.layer3?.query_time_ms) {<span class="text-xs text-muted">{{ trace()!.layer3!.query_time_ms }}ms</span>}
+    <span class="chev" [class.open]="expanded()">▾</span>
+  </div>
+  @if (expanded()) {
+    <div class="ldp-tabs tab-bar">
+      @for (l of layers; track l) {
+        <button class="tab" [class.active]="activeLayer()===l" (click)="activeLayer.set(l)">{{ layerNames[l] }}</button>
+      }
+    </div>
+    <div class="ldp-body animate-in">
+      @if (activeLayer()===1 && trace()?.layer1; as l1) {
+        <div class="ldp-rows">
+          <div class="r"><span class="k">Parser</span><span class="v font-mono">{{ l1.parser }}</span></div>
+          <div class="r"><span class="k">Chunks</span><span class="v">{{ l1.chunks | number }}</span></div>
+          <div class="r"><span class="k">Extractions</span><span class="v">{{ l1.extractions | number }}</span></div>
+          <div class="r"><span class="k">Grounded</span><span class="v">{{ l1.grounded | number }} ({{ pct(l1.grounded/l1.extractions) }})</span></div>
+          <div class="r"><span class="k">Confidence</span><span class="v" [style.color]="confColor(l1.confidence_mean)">{{ pct(l1.confidence_mean) }}</span></div>
+        </div>
+      } @else if (activeLayer()===2 && trace()?.layer2; as l2) {
+        <div class="ldp-rows">
+          <div class="r"><span class="k">Named Graph</span><span class="v font-mono text-xs">{{ l2.named_graph }}</span></div>
+          <div class="r"><span class="k">Ontology</span><span class="v">{{ l2.ontology_version }}</span></div>
+          <div class="r"><span class="k">Triples</span><span class="v">{{ l2.triples_in_scope | number }}</span></div>
+        </div>
+      } @else if (activeLayer()===3 && trace()?.layer3; as l3) {
+        <div class="ldp-rows">
+          <div class="r"><span class="k">Context</span><span class="v"><span class="badge badge-info">{{ l3.context }}</span></span></div>
+          <div class="r"><span class="k">ABAC</span><span class="v"><span class="badge" [class.badge-success]="l3.abac_decision==='allow'" [class.badge-error]="l3.abac_decision==='deny'">{{ l3.abac_decision | uppercase }}</span></span></div>
+          <div class="r"><span class="k">Backend</span><span class="v font-mono">{{ l3.backend }}</span></div>
+          <div class="r"><span class="k">Cache</span><span class="v"><span class="badge" [class.badge-success]="l3.cache_hit" [class.badge-neutral]="!l3.cache_hit">{{ l3.cache_hit ? 'HIT' : 'MISS' }}</span></span></div>
+          <div class="r"><span class="k">Time</span><span class="v">{{ l3.query_time_ms }}ms</span></div>
+          @if (l3.sql_generated) {<pre class="code-block" style="margin-top:8px;font-size:11px">{{ l3.sql_generated }}</pre>}
+          @if (l3.provenance) {<pre class="code-block" style="margin-top:8px;font-size:11px">{{ prettyJson(l3.provenance) }}</pre>}
+        </div>
+      } @else if (activeLayer()===4 && trace()?.layer4; as l4) {
+        <div class="ldp-rows">
+          <div class="r"><span class="k">Format</span><span class="v font-mono">{{ l4.format }}</span></div>
+          <div class="r"><span class="k">Size</span><span class="v">{{ l4.response_size_bytes | number }} bytes</span></div>
+        </div>
+      } @else {
+        <div class="ldp-empty text-muted text-sm">No data for this layer</div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,22 @@
+<div class="prov-panel">
+  <div class="prov-header">
+    <span class="prov-icon">🔗</span>
+    <span class="text-sm font-semibold">PROV-O Provenance</span>
+  </div>
+  @if (provenance()) {
+    <div class="prov-entries">
+      @for (entry of entries(); track entry.key) {
+        <div class="prov-row">
+          <span class="prov-key font-mono">{{ entry.key }}</span>
+          <span class="prov-val">{{ entry.value }}</span>
+        </div>
+      }
+    </div>
+    <details class="prov-json-details">
+      <summary class="text-xs text-muted">Show raw JSON-LD</summary>
+      <pre class="code-block" style="margin-top:8px;font-size:11px">{{ prettyJson() }}</pre>
+    </details>
+  } @else {
+    <div class="prov-empty text-muted text-sm">No provenance data available</div>
+  }
+</div>

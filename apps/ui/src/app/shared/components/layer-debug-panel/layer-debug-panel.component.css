@@ -1,0 +1,11 @@
+:host{display:block}
+.ldp-hdr{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--usf-border)}
+.ldp-hdr:hover{background:rgba(255,255,255,.02)}
+.chev{margin-left:auto;color:var(--usf-text-muted);transition:transform .2s;display:inline-block}
+.chev.open{transform:rotate(180deg)}
+.ldp-body{padding:12px 16px}
+.ldp-rows{display:flex;flex-direction:column;gap:8px}
+.r{display:flex;align-items:flex-start;gap:12px}
+.k{font-size:11px;color:var(--usf-text-muted);min-width:100px;flex-shrink:0}
+.v{font-size:13px;color:var(--usf-text-primary);word-break:break-all}
+.ldp-empty{padding:20px 16px;text-align:center}

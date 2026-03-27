@@ -1,0 +1,202 @@
+<div class="wizard-page">
+  <div class="wizard-header">
+    <div class="brand-small">
+      <span style="color:var(--usf-primary-500);font-size:20px">◈</span>
+      <span class="text-sm font-semibold">USF Setup Wizard</span>
+    </div>
+  </div>
+
+  <div class="wizard-body">
+    <!-- Step indicators -->
+    <div class="step-indicators">
+      @for (step of steps; track step.id) {
+        <div class="step-indicator" [class.active]="currentStep() === step.id" [class.done]="currentStep() > step.id">
+          <div class="step-dot">
+            @if (currentStep() > step.id) { ✓ } @else { {{ step.id }} }
+          </div>
+          <span class="step-label text-xs">{{ step.title }}</span>
+        </div>
+        @if (step.id < steps.length) {
+          <div class="step-connector" [class.done]="currentStep() > step.id"></div>
+        }
+      }
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-bar-wrap">
+      <div class="progress-fill" [style.width.%]="progress()"></div>
+    </div>
+
+    <!-- Step content -->
+    <div class="step-card card animate-in">
+      <div class="step-header">
+        <span class="step-icon">{{ steps[currentStep() - 1].icon }}</span>
+        <div>
+          <div class="text-xs text-muted">Step {{ currentStep() }} of {{ steps.length }}</div>
+          <div class="text-xl font-semibold">{{ steps[currentStep() - 1].title }}</div>
+        </div>
+      </div>
+
+      <!-- Step 1: Tenant -->
+      @if (currentStep() === 1) {
+        <div class="step-content animate-in">
+          <div class="form-field">
+            <label class="form-label">Organization name</label>
+            <input type="text" class="input" style="width:100%" [value]="tenantName()" (input)="tenantName.set($any($event.target).value)" />
+          </div>
+          <div class="form-field">
+            <label class="form-label">Industry</label>
+            <select class="input" style="width:100%" [value]="industry()" (change)="industry.set($any($event.target).value)">
+              @for (ind of industries; track ind) {
+                <option [value]="ind" [selected]="industry() === ind">{{ ind }}</option>
+              }
+            </select>
+          </div>
+          @if (industry()) {
+            <div class="ontology-preview animate-in">
+              <span class="text-xs text-muted">Loading FIBO ontology for {{ industry() }}...</span>
+              <div class="ontology-stats">
+                <span class="badge badge-primary">142 classes</span>
+                <span class="badge badge-primary">387 properties</span>
+                <span class="badge badge-success">FIBO-v3.2.1</span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Step 2: Data Source -->
+      @if (currentStep() === 2) {
+        <div class="step-content animate-in">
+          <div class="source-tabs tab-bar">
+            @for (t of ['warehouse','files','api','stream']; track t) {
+              <button class="tab" [class.active]="sourceType() === t" (click)="sourceType.set($any(t))">
+                {{ t | titlecase }}
+              </button>
+            }
+          </div>
+          @if (sourceType() === 'warehouse') {
+            <div class="form-field">
+              <label class="form-label">Connection string</label>
+              <input type="text" class="input font-mono" style="width:100%" [value]="connectionString()" (input)="connectionString.set($any($event.target).value)" />
+            </div>
+            <div class="conn-row">
+              <button class="btn btn-primary" (click)="testConnection()" [disabled]="isLoading()">
+                @if (isLoading()) { <span class="spinner-sm"></span> Testing... } @else { Test Connection }
+              </button>
+              @if (connectionTested()) {
+                <span class="badge badge-success animate-in">✓ Connected · 12 tables detected</span>
+              }
+            </div>
+          } @else {
+            <div class="drop-zone">
+              <span class="text-muted text-sm">Drag & drop CSV, PDF, XLSX here</span>
+              <button class="btn btn-ghost" style="margin-top:8px">Browse files</button>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Step 3: Ontology -->
+      @if (currentStep() === 3) {
+        <div class="step-content animate-in">
+          <div class="flex gap-3 items-center">
+            <span class="text-sm">FIBO ontology module for {{ industry() }}</span>
+            <button class="btn btn-primary" (click)="loadOntology()" [disabled]="isLoading() || ontologyLoaded()">
+              @if (isLoading()) { <span class="spinner-sm"></span> Loading... }
+              @else if (ontologyLoaded()) { ✓ Loaded }
+              @else { Load Ontology }
+            </button>
+          </div>
+          @if (ontologyLoaded()) {
+            <div class="animate-in">
+              <div class="text-xs text-muted" style="margin-bottom:8px">Mapping suggestions</div>
+              <table class="usf-table">
+                <thead><tr><th>Column</th><th>Ontology Class</th><th>Confidence</th></tr></thead>
+                <tbody>
+                  @for (m of mappingSuggestions(); track m.column) {
+                    <tr>
+                      <td class="font-mono text-xs">{{ m.column }}</td>
+                      <td class="font-mono text-xs" style="color:var(--usf-primary-500)">{{ m.ontologyClass }}</td>
+                      <td>
+                        <div class="conf-mini-bar">
+                          <div [style.width.%]="m.confidence * 100" [style.background]="m.confidence > 0.9 ? 'var(--usf-success)' : 'var(--usf-warning)'"></div>
+                        </div>
+                        <span class="text-xs">{{ (m.confidence * 100).toFixed(0) }}%</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Step 4: Context -->
+      @if (currentStep() === 4) {
+        <div class="step-content animate-in">
+          <div class="form-field">
+            <label class="form-label">Context name</label>
+            <input type="text" class="input" style="width:100%" [value]="contextName()" (input)="contextName.set($any($event.target).value)" />
+          </div>
+          <div class="form-field">
+            <label class="form-label">What does "revenue" mean in this context?</label>
+            <select class="input" style="width:100%" [value]="revenueDefinition()" (change)="revenueDefinition.set($any($event.target).value)">
+              <option value="net_interest_income">Net Interest Income</option>
+              <option value="total_revenue">Total Revenue (GAAP)</option>
+              <option value="operating_revenue">Operating Revenue</option>
+              <option value="fee_income">Fee Income</option>
+            </select>
+          </div>
+          <div class="sdl-preview">
+            <div class="text-xs text-muted" style="margin-bottom:6px">SDL Preview (live)</div>
+            <pre class="code-block">context: {{ contextName() }}
+  ontology: FIBO-v3.2.1
+  definitions:
+    revenue: {{ revenueDefinition() }}
+  access:
+    roles: [analyst, auditor]</pre>
+          </div>
+        </div>
+      }
+
+      <!-- Step 5: First Query -->
+      @if (currentStep() === 5) {
+        <div class="step-content animate-in">
+          <div class="nl-query-box">
+            <div class="text-xs text-muted" style="margin-bottom:6px">Pre-filled for {{ industry() }}</div>
+            <div class="nl-query-text">"What is the total exposure by counterparty in the EU financial sector?"</div>
+          </div>
+          <button class="btn btn-primary" (click)="runFirstQuery()" [disabled]="isLoading()">
+            @if (isLoading()) {
+              <span class="spinner-sm"></span> Running pipeline...
+            } @else {
+              ▶ Run Query
+            }
+          </button>
+          @if (queryResult()) {
+            <div class="query-success animate-in">
+              <span class="badge badge-success" style="font-size:var(--text-sm);padding:8px 16px">{{ queryResult() }}</span>
+            </div>
+            <button class="btn btn-primary" (click)="finish()">Go to Dashboard →</button>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Navigation -->
+    <div class="wizard-nav">
+      @if (currentStep() > 1) {
+        <button class="btn btn-ghost" (click)="back()">← Back</button>
+      } @else {
+        <div></div>
+      }
+      @if (currentStep() < steps.length) {
+        <button class="btn btn-primary" (click)="next()" [disabled]="!canProceed()">
+          Next →
+        </button>
+      }
+    </div>
+  </div>
+</div>
