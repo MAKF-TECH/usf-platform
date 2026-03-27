@@ -1,0 +1,36 @@
+[
+  {
+    "text": "The counterparty, JP Morgan Chase Bank N.A. (LEI: 7H6GLXDRUGQFU57RNE97), acting as swap dealer, is a Category A ISDA Master Agreement counterparty with a credit rating of AA- (S&P).",
+    "extractions": [
+      {"class": "fibo:Counterparty", "text": "JP Morgan Chase Bank N.A.", "attributes": {"lei": "7H6GLXDRUGQFU57RNE97", "role": "SwapDealer", "isda_category": "A", "credit_rating_sp": "AA-", "entity_type": "CommercialBank"}}
+    ]
+  },
+  {
+    "text": "All counterparties with a net exposure exceeding EUR 10 million, including Société Générale S.A. (EUR 14.2M), BBVA S.A. (EUR 11.8M), and Commerzbank AG (EUR 10.5M), require senior management approval.",
+    "extractions": [
+      {"class": "fibo:Counterparty", "text": "Société Générale S.A.", "attributes": {"exposure_amount": "14200000", "exposure_currency": "EUR", "approval_required": "true"}},
+      {"class": "fibo:Counterparty", "text": "BBVA S.A.", "attributes": {"exposure_amount": "11800000", "exposure_currency": "EUR", "approval_required": "true"}},
+      {"class": "fibo:Counterparty", "text": "Commerzbank AG", "attributes": {"exposure_amount": "10500000", "exposure_currency": "EUR", "approval_required": "true"}}
+    ]
+  },
+  {
+    "text": "The clearing counterparty for all EUR-denominated interest rate swaps is LCH Clearnet SA, a central counterparty clearing house (CCP) authorised under EMIR.",
+    "extractions": [
+      {"class": "fibo:Counterparty", "text": "LCH Clearnet SA", "attributes": {"counterparty_type": "CentralCounterparty", "role": "ClearingCCP", "regulatory_framework": "EMIR", "instrument_scope": "EUR_IRS"}}
+    ]
+  },
+  {
+    "text": "The reporting counterparty under EMIR is Deutsche Bank AG (LEI: 7LTWFZYICNSX8D621K86), and the other counterparty is a non-financial entity, Volkswagen AG (LEI: VGRQXHF3J8VDLUA7XE92).",
+    "extractions": [
+      {"class": "fibo:Counterparty", "text": "Deutsche Bank AG", "attributes": {"lei": "7LTWFZYICNSX8D621K86", "counterparty_type": "FinancialCounterparty", "emir_role": "reporting_counterparty"}},
+      {"class": "fibo:Counterparty", "text": "Volkswagen AG", "attributes": {"lei": "VGRQXHF3J8VDLUA7XE92", "counterparty_type": "NonFinancialCounterparty", "emir_role": "other_counterparty"}}
+    ]
+  },
+  {
+    "text": "The prime broker, Morgan Stanley & Co. International plc, provides custody, financing, and execution services to the hedge fund counterparty, Alcyone Capital Management LP.",
+    "extractions": [
+      {"class": "fibo:Counterparty", "text": "Morgan Stanley & Co. International plc", "attributes": {"role": "PrimeBroker", "entity_type": "InvestmentBank"}},
+      {"class": "fibo:Counterparty", "text": "Alcyone Capital Management LP", "attributes": {"role": "HedgeFundClient", "entity_type": "AlternativeInvestmentFund"}}
+    ]
+  }
+]

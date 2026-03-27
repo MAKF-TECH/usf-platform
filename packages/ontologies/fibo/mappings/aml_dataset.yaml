@@ -1,0 +1,88 @@
+# Column → FIBO class mappings for Kaggle IBM AML Dataset
+# Dataset: https://www.kaggle.com/datasets/ealtman2019/ibm-transactions-for-anti-money-laundering-aml
+# CSV schema documented in: https://github.com/IBM/TabFormer
+
+dataset:
+  name: IBM AML Transactions
+  source: Kaggle
+  url: https://www.kaggle.com/datasets/ealtman2019/ibm-transactions-for-anti-money-laundering-aml
+  format: CSV
+  primary_table: transactions
+  usf_entity: Transaction
+
+column_mappings:
+  # Transaction identity
+  - column: "Step"
+    usf_field: "timestamp"
+    transformation: "step_to_datetime"  # Step is simulation step → convert to datetime
+    fibo_property: "https://usf.makf.tech/ontology/timestamp"
+    datatype: xsd:dateTime
+
+  - column: "Amount"
+    usf_field: "amount"
+    fibo_property: "https://usf.makf.tech/ontology/amount"
+    datatype: xsd:decimal
+
+  - column: "Payment Currency"
+    usf_field: "currency"
+    fibo_property: "https://usf.makf.tech/ontology/currency"
+    datatype: xsd:string
+
+  - column: "Payment Format"
+    usf_field: "transactionType"
+    fibo_property: "https://usf.makf.tech/ontology/transactionType"
+    value_map:
+      "Reinvestment": "wire"
+      "Wire": "wire"
+      "ACH": "ach"
+      "Cash": "cash"
+      "Credit Card": "internal"
+      "Cheque": "check"
+
+  # Account / entity references
+  - column: "From Bank"
+    usf_entity: Bank
+    usf_field: "legalName"
+    fibo_class: "https://spec.edmcouncil.org/fibo/ontology/FBC/FunctionalEntities/FinancialInstitutions/CommercialBank"
+    id_generation: "prefix:from-bank-{value}"
+
+  - column: "From Account"
+    usf_entity: Account
+    usf_field: "accountId"
+    fibo_class: "https://spec.edmcouncil.org/fibo/ontology/FBC/ProductsAndServices/FinancialProductsAndServices/Account"
+    id_generation: "prefix:account-{value}"
+    link_field: "fromAccount"
+
+  - column: "To Bank"
+    usf_entity: Bank
+    usf_field: "legalName"
+    fibo_class: "https://spec.edmcouncil.org/fibo/ontology/FBC/FunctionalEntities/FinancialInstitutions/CommercialBank"
+    id_generation: "prefix:to-bank-{value}"
+
+  - column: "To Account"
+    usf_entity: Account
+    usf_field: "accountId"
+    fibo_class: "https://spec.edmcouncil.org/fibo/ontology/FBC/ProductsAndServices/FinancialProductsAndServices/Account"
+    id_generation: "prefix:account-{value}"
+    link_field: "toAccount"
+
+  # AML label
+  - column: "Is Laundering"
+    usf_field: "isFlagged"
+    fibo_property: "https://usf.makf.tech/ontology/isFlagged"
+    datatype: xsd:boolean
+    value_map:
+      "0": false
+      "1": true
+
+  - column: "Laundering Type"
+    usf_field: "amlPattern"
+    fibo_property: "https://usf.makf.tech/ontology/amlPattern"
+    datatype: xsd:string
+    note: "Only present when Is Laundering = 1"
+
+named_graph: "usf://pilot-bank/instance/kaggle-aml/{batch_id}"
+provenance:
+  source_dataset: "Kaggle IBM AML"
+  ontology_version: "fibo/2024-Q4"
+  ingestion_method: "dlt-csv"

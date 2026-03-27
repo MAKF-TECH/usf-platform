@@ -1,0 +1,32 @@
+[
+  {
+    "text": "The revolving credit facility of EUR 50,000,000 (Account No. DE89370400440532013000) shall accrue interest at EURIBOR plus 150 basis points per annum.",
+    "extractions": [
+      {"class": "fibo:Account", "text": "revolving credit facility of EUR 50,000,000", "attributes": {"account_number": "DE89370400440532013000", "account_type": "RevolvingCreditFacility", "currency": "EUR", "amount": "50000000", "interest_rate_spread": "150", "interest_rate_base": "EURIBOR"}}
+    ]
+  },
+  {
+    "text": "The borrower maintains a collection account (IBAN: GB29NWBK60161331926819) at Barclays Bank plc into which all receivables are deposited daily.",
+    "extractions": [
+      {"class": "fibo:Account", "text": "collection account (IBAN: GB29NWBK60161331926819)", "attributes": {"iban": "GB29NWBK60161331926819", "account_type": "CollectionAccount", "custodian": "Barclays Bank plc"}}
+    ]
+  },
+  {
+    "text": "The syndicated term loan facility of USD 300 million has a tenor of 5 years, with quarterly principal repayments commencing 12 months after the drawdown date.",
+    "extractions": [
+      {"class": "fibo:Account", "text": "syndicated term loan facility of USD 300 million", "attributes": {"account_type": "TermLoan", "currency": "USD", "amount": "300000000", "tenor_years": "5", "repayment_frequency": "quarterly"}}
+    ]
+  },
+  {
+    "text": "The escrow account (Account ref: ESC-2024-0042) holds EUR 5,000,000 as security deposit until project completion, with funds released upon satisfaction of the conditions precedent.",
+    "extractions": [
+      {"class": "fibo:Account", "text": "escrow account (Account ref: ESC-2024-0042)", "attributes": {"account_reference": "ESC-2024-0042", "account_type": "EscrowAccount", "currency": "EUR", "amount": "5000000"}}
+    ]
+  },
+  {
+    "text": "Under the mortgage facility agreement, the outstanding balance of GBP 1,250,000 is secured against the freehold property located at 42 Crown Street, London.",
+    "extractions": [
+      {"class": "fibo:Account", "text": "mortgage facility agreement", "attributes": {"account_type": "MortgageFacility", "currency": "GBP", "outstanding_balance": "1250000", "collateral_type": "FreeholdProperty"}}
+    ]
+  }
+]
