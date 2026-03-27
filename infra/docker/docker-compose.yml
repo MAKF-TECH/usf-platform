@@ -1,0 +1,427 @@
+# USF Platform — Docker Compose (Local Development)
+# Version: 1.0.0 | Author: usf-architect | Date: 2026-03-27
+#
+# Usage: docker compose up -d
+# Services: 9 USF app services + 8 sidecars
+#
+name: usf-platform
+
+networks:
+  usf-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  qlever_data:
+  arcadedb_data:
+  valkey_data:
+  redpanda_data:
+  opa_bundles:
+  ontop_data:
+  wren_data:
+  sdl_storage:
+  audit_exports:
+  pyoxigraph_data:
+
+x-common-env: &common-env
+  ENVIRONMENT: development
+  LOG_LEVEL: INFO
+  LOG_JSON: "false"
+  DATABASE_URL: postgresql+psycopg://usf_app:changeme@postgres:5432/usf
+  VALKEY_URL: redis://valkey:6379/0
+  REDPANDA_BOOTSTRAP: redpanda:9092
+  QLEVER_SPARQL_ENDPOINT: http://qlever:7001/sparql
+  QLEVER_UPDATE_ENDPOINT: http://qlever:7001/update
+  ARCADEDB_URL: http://arcadedb:2480
+  ARCADEDB_DATABASE: usf
+  ARCADEDB_USER: root
+  ARCADEDB_PASSWORD: changeme
+  ONTOP_SPARQL_ENDPOINT: http://ontop:8080/sparql
+  WREN_ENGINE_URL: http://wren-engine:8080
+  OPA_URL: http://opa:8181
+  JWT_PUBLIC_KEY_PATH: /run/secrets/jwt_public.pem
+  LLM_PROVIDER: google
+  LLM_MODEL: gemini-1.5-pro
+
+services:
+  # ── SIDECARS ──────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: usf-postgres
+    environment:
+      POSTGRES_USER: usf_app
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: usf
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports: ["5432:5432"]
+    networks: [usf-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U usf_app -d usf"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  valkey:
+    image: valkey/valkey:7.2-alpine
+    container_name: usf-valkey
+    command: valkey-server --save 60 1 --loglevel warning
+    volumes: [valkey_data:/data]
+    ports: ["6379:6379"]
+    networks: [usf-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redpanda:
+    image: redpandadata/redpanda:v24.1.1
+    container_name: usf-redpanda
+    command:
+      - redpanda start
+      - --mode dev-container
+      - --smp 1
+      - --memory 512M
+      - --reserve-memory 0M
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+    volumes: [redpanda_data:/var/lib/redpanda/data]
+    ports: ["19092:19092", "19644:9644"]
+    networks: [usf-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  qlever:
+    image: adfreiburg/qlever:latest
+    container_name: usf-qlever
+    volumes: [qlever_data:/data]
+    ports: ["7001:7001"]
+    networks: [usf-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:7001/ || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  arcadedb:
+    image: arcadedata/arcadedb:24.4.1
+    container_name: usf-arcadedb
+    environment:
+      JAVA_OPTS: "-Xms256m -Xmx1g"
+      arcadedb.server.rootPassword: changeme
+    volumes: [arcadedb_data:/home/arcadedb/databases]
+    ports: ["2480:2480", "2424:2424"]
+    networks: [usf-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:2480/api/v1/ready || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  ontop:
+    image: ontop/ontop-endpoint:5.1.0
+    container_name: usf-ontop
+    environment:
+      ONTOP_PORT: 8080
+      JAVA_ARGS: "-Xmx512m"
+    volumes:
+      - ontop_data:/opt/ontop/config
+      - ../../sidecars/ontop:/opt/ontop/config:ro
+    ports: ["18080:8080"]
+    networks: [usf-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/sparql || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+
+  opa:
+    image: openpolicyagent/opa:0.65.0-rootless
+    container_name: usf-opa
+    command: ["run", "--server", "--addr", "0.0.0.0:8181", "--log-format", "json", "/policies"]
+    volumes:
+      - opa_bundles:/policies
+      - ../../sidecars/opa/policies:/policies:ro
+    ports: ["8181:8181"]
+    networks: [usf-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8181/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  wren-engine:
+    image: ghcr.io/canner/wren-engine:0.11.0
+    container_name: usf-wren-engine
+    volumes:
+      - wren_data:/var/wren
+      - ../../sidecars/wren:/var/wren:ro
+    ports: ["18090:8080"]
+    networks: [usf-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/v1/mdl || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ── USF SERVICES ─────────────────────────────────────────────────
+
+  usf-api:
+    build:
+      context: ../../
+      dockerfile: apps/api/Dockerfile
+    container_name: usf-api
+    environment:
+      <<: *common-env
+      SERVICE_NAME: usf-api
+      API_PORT: "8000"
+      JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private.pem
+      QUERY_SERVICE_URL: http://usf-query:8001
+      KG_SERVICE_URL: http://usf-kg:8002
+      SDL_SERVICE_URL: http://usf-sdl:8003
+      AUDIT_SERVICE_URL: http://usf-audit:8005
+      CORS_ORIGINS: '["http://localhost:4200"]'
+    volumes:
+      - ./secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
+      - ./secrets/jwt_private.pem:/run/secrets/jwt_private.pem:ro
+    ports: ["8000:8000"]
+    networks: [usf-network]
+    restart: unless-stopped
+    depends_on:
+      postgres: {condition: service_healthy}
+      valkey: {condition: service_healthy}
+      opa: {condition: service_healthy}
+      usf-kg: {condition: service_healthy}
+      usf-query: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  usf-query:
+    build:
+      context: ../../
+      dockerfile: apps/query/Dockerfile
+    container_name: usf-query
+    environment:
+      <<: *common-env
+      SERVICE_NAME: usf-query
+      API_PORT: "8001"
+      KG_SERVICE_URL: http://usf-kg:8002
+      NL2SPARQL_MAX_ITERATIONS: "3"
+    ports: ["8001:8001"]
+    networks: [usf-network]
+    restart: unless-stopped
+    depends_on:
+      postgres: {condition: service_healthy}
+      qlever: {condition: service_healthy}
+      usf-kg: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  usf-kg:
+    build:
+      context: ../../
+      dockerfile: apps/kg/Dockerfile
+    container_name: usf-kg
+    environment:
+      <<: *common-env
+      SERVICE_NAME: usf-kg
+      API_PORT: "8002"
+      PYOXIGRAPH_STORE_PATH: /data/pyoxigraph
+    volumes: [pyoxigraph_data:/data/pyoxigraph]
+    ports: ["8002:8002"]
+    networks: [usf-network]
+    restart: unless-stopped
+    depends_on:
+      postgres: {condition: service_healthy}
+      qlever: {condition: service_healthy}
+      arcadedb: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8002/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  usf-ingest:
+    build:
+      context: ../../
+      dockerfile: apps/ingest/Dockerfile
+    container_name: usf-ingest
+    environment:
+      <<: *common-env
+      SERVICE_NAME: usf-ingest
+      API_PORT: "8004"
+      KG_SERVICE_URL: http://usf-kg:8002
+      CELERY_BROKER_URL: redis://valkey:6379/1
+      CELERY_RESULT_BACKEND: db+postgresql+psycopg://usf_app:changeme@postgres:5432/usf
+      DOCLING_DEVICE: cpu
+    ports: ["8004:8004"]
+    networks: [usf-network]
+    restart: unless-stopped
+    depends_on:
+      postgres: {condition: service_healthy}
+      valkey: {condition: service_healthy}
+      usf-kg: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8004/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  usf-sdl:
+    build:
+      context: ../../
+      dockerfile: apps/sdl/Dockerfile
+    container_name: usf-sdl
+    environment:
+      <<: *common-env
+      SERVICE_NAME: usf-sdl
+      API_PORT: "8003"
+      SDL_STORAGE_PATH: /data/sdl
+    volumes: [sdl_storage:/data/sdl]
+    ports: ["8003:8003"]
+    networks: [usf-network]
+    restart: unless-stopped
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8003/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  usf-mcp:
+    build:
+      context: ../../
+      dockerfile: apps/mcp/Dockerfile
+    container_name: usf-mcp
+    environment:
+      <<: *common-env
+      SERVICE_NAME: usf-mcp
+      MCP_PORT: "8006"
+      MCP_TRANSPORT: sse
+      API_SERVICE_URL: http://usf-api:8000
+    ports: ["8006:8006"]
+    networks: [usf-network]
+    restart: unless-stopped
+    depends_on:
+      usf-api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8006/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  usf-audit:
+    build:
+      context: ../../
+      dockerfile: apps/audit/Dockerfile
+    container_name: usf-audit
+    environment:
+      <<: *common-env
+      SERVICE_NAME: usf-audit
+      API_PORT: "8005"
+      AUDIT_RETENTION_YEARS: "7"
+      EXPORT_STORAGE_PATH: /data/audit-exports
+    volumes: [audit_exports:/data/audit-exports]
+    ports: ["8005:8005"]
+    networks: [usf-network]
+    restart: unless-stopped
+    depends_on:
+      postgres: {condition: service_healthy}
+      redpanda: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8005/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  usf-worker:
+    build:
+      context: ../../
+      dockerfile: apps/worker/Dockerfile
+    container_name: usf-worker
+    environment:
+      <<: *common-env
+      SERVICE_NAME: usf-worker
+      CELERY_BROKER_URL: redis://valkey:6379/1
+      CELERY_RESULT_BACKEND: db+postgresql+psycopg://usf_app:changeme@postgres:5432/usf
+    command: >
+      celery -A usf_worker.celery_app worker
+      --loglevel=info --concurrency=4
+      --queues=default,ingest,sdl,cache
+    networks: [usf-network]
+    restart: unless-stopped
+    depends_on:
+      postgres: {condition: service_healthy}
+      valkey: {condition: service_healthy}
+      usf-kg: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A usf_worker.celery_app inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+
+  usf-ui:
+    build:
+      context: ../../apps/ui
+      dockerfile: Dockerfile
+      args:
+        API_BASE_URL: http://localhost:8000
+    container_name: usf-ui
+    ports: ["4200:80"]
+    networks: [usf-network]
+    restart: unless-stopped
+    depends_on:
+      usf-api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Celery Flower (monitoring) — start with: docker compose --profile monitoring up
+  usf-flower:
+    build:
+      context: ../../
+      dockerfile: apps/worker/Dockerfile
+    container_name: usf-flower
+    command: celery -A usf_worker.celery_app flower --port=5555 --broker=redis://valkey:6379/1
+    environment:
+      <<: *common-env
+      SERVICE_NAME: usf-flower
+    ports: ["5555:5555"]
+    networks: [usf-network]
+    depends_on:
+      valkey: {condition: service_healthy}
+    profiles: [monitoring]
+    restart: unless-stopped
