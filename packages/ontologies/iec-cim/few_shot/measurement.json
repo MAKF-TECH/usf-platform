@@ -1,0 +1,109 @@
+[
+  {
+    "text": "Metering point MPAN 1012345678901 at Grid Supply Point Sellindge records active power via an Analog measurement (mRID: a7c3d519-2e4f-4b8a-9c1d-3e5f7b2a0c8e) with a full-scale range of 0–2000 MW, updated every 5 minutes.",
+    "extractions": [
+      {
+        "class": "cim:Analog",
+        "text": "Analog measurement (mRID: a7c3d519-2e4f-4b8a-9c1d-3e5f7b2a0c8e)",
+        "attributes": {
+          "mRID": "a7c3d519-2e4f-4b8a-9c1d-3e5f7b2a0c8e",
+          "measurementType": "ActivePower",
+          "unitSymbol": "W",
+          "unitMultiplier": "M",
+          "minValue": 0,
+          "maxValue": 2000,
+          "scanInterval_s": 300,
+          "terminal": "MPAN 1012345678901",
+          "location": "Sellindge GSP"
+        }
+      }
+    ]
+  },
+  {
+    "text": "The status of circuit breaker CB-A7 at Hinkley Point 400 kV substation is monitored by a Discrete measurement (mRID: f2b8e145-9d3c-4a7f-b6e2-0c1a3d5e7f9b) with two valid states: 0 = Open, 1 = Closed.",
+    "extractions": [
+      {
+        "class": "cim:Discrete",
+        "text": "Discrete measurement (mRID: f2b8e145-9d3c-4a7f-b6e2-0c1a3d5e7f9b)",
+        "attributes": {
+          "mRID": "f2b8e145-9d3c-4a7f-b6e2-0c1a3d5e7f9b",
+          "measurementType": "SwitchPosition",
+          "terminal": "CB-A7",
+          "location": "Hinkley Point 400 kV Substation",
+          "discreteValues": {"0": "Open", "1": "Closed"}
+        }
+      }
+    ]
+  },
+  {
+    "text": "Total energy imported at half-hourly settlement meter point MPAN 2098765432100 is tracked by an Accumulator (mRID: e4d1a372-6c5b-4e8f-a3d0-9b7c2e1f5a3d) with a rollover value of 999999.99 MWh.",
+    "extractions": [
+      {
+        "class": "cim:Accumulator",
+        "text": "Accumulator (mRID: e4d1a372-6c5b-4e8f-a3d0-9b7c2e1f5a3d)",
+        "attributes": {
+          "mRID": "e4d1a372-6c5b-4e8f-a3d0-9b7c2e1f5a3d",
+          "measurementType": "EnergyImport",
+          "unitSymbol": "Wh",
+          "unitMultiplier": "M",
+          "maxValue": 999999.99,
+          "terminal": "MPAN 2098765432100",
+          "settlementInterval": "HH"
+        }
+      }
+    ]
+  },
+  {
+    "text": "Reactive power on the 132 kV busbar at Ironbridge substation is measured by two Analog sensors (mRIDs: 3b9f2c40-7e1a-4d6b-8c5f-2a0e9d3b7f1c and 8c4a5e72-1d3f-4b8e-a9c2-6f0b3d5e7a2d) in parallel, both with a range of −600 to +600 MVAr, resolution 0.1 MVAr.",
+    "extractions": [
+      {
+        "class": "cim:Analog",
+        "text": "Analog sensors (mRIDs: 3b9f2c40-7e1a-4d6b-8c5f-2a0e9d3b7f1c",
+        "attributes": {
+          "mRID": "3b9f2c40-7e1a-4d6b-8c5f-2a0e9d3b7f1c",
+          "measurementType": "ReactivePower",
+          "unitSymbol": "VAr",
+          "unitMultiplier": "M",
+          "minValue": -600,
+          "maxValue": 600,
+          "resolution": 0.1,
+          "location": "Ironbridge Substation 132 kV Busbar"
+        }
+      },
+      {
+        "class": "cim:Analog",
+        "text": "8c4a5e72-1d3f-4b8e-a9c2-6f0b3d5e7a2d",
+        "attributes": {
+          "mRID": "8c4a5e72-1d3f-4b8e-a9c2-6f0b3d5e7a2d",
+          "measurementType": "ReactivePower",
+          "unitSymbol": "VAr",
+          "unitMultiplier": "M",
+          "minValue": -600,
+          "maxValue": 600,
+          "resolution": 0.1,
+          "location": "Ironbridge Substation 132 kV Busbar"
+        }
+      }
+    ]
+  },
+  {
+    "text": "The tap position of the 400/275 kV autotransformer AT2 at Pelham substation is encoded as a Discrete measurement (mRID: 1c7e4a85-3f2b-4d9c-b6a8-5e0d2c3f8a1b), ranging from −8 (fully buck) to +8 (fully boost), nominal position 0.",
+    "extractions": [
+      {
+        "class": "cim:Discrete",
+        "text": "Discrete measurement (mRID: 1c7e4a85-3f2b-4d9c-b6a8-5e0d2c3f8a1b)",
+        "attributes": {
+          "mRID": "1c7e4a85-3f2b-4d9c-b6a8-5e0d2c3f8a1b",
+          "measurementType": "TapPosition",
+          "terminal": "AT2",
+          "location": "Pelham Substation",
+          "minValue": -8,
+          "maxValue": 8,
+          "nominalValue": 0,
+          "highSideVoltage_kV": 400,
+          "lowSideVoltage_kV": 275
+        }
+      }
+    ]
+  }
+]

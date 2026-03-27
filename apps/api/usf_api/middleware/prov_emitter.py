@@ -4,9 +4,81 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+from pydantic import BaseModel
 
-def utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
+from usf_api.middleware.abac import TokenClaims
+
+
+# ── Pydantic models for prov metadata ────────────────────────────────────────
+
+class QueryMeta(BaseModel):
+    """Metadata captured during query execution for provenance."""
+    started_at: datetime
+    ended_at: datetime
+    query_hash: str
+    backend: Any  # QueryBackend enum or string
+    policy_version: str = "unknown"
+    ontology_version: str = "latest"
+    data_sources: list[str] = []
+
+
+class SemanticQueryRef(BaseModel):
+    """Minimal reference to the query for provenance (avoids circular imports)."""
+    context: str
+    ontology_version: str = "latest"
+    query_hash: str | None = None
+
+
+# ── PROV-O builders ───────────────────────────────────────────────────────────
+
+def build_prov_block(
+    query: SemanticQueryRef,
+    result_meta: QueryMeta,
+    user: TokenClaims,
+) -> dict[str, Any]:
+    """
+    Build a W3C PROV-O JSON-LD provenance block.
+
+    Represents:
+      - prov:Entity  — the result dataset
+      - prov:Activity — the query execution
+      - prov:Agent    — the user who ran the query
+    """
+    backend_val = (
+        result_meta.backend.value
+        if hasattr(result_meta.backend, "value")
+        else str(result_meta.backend)
+    )
+
+    return {
+        "@context": {
+            "prov": "http://www.w3.org/ns/prov#",
+            "usf": "https://usf.io/vocab/",
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
+        },
+        "@type": "prov:Entity",
+        "prov:wasGeneratedBy": {
+            "@type": "prov:Activity",
+            "prov:startedAtTime": {
+                "@value": result_meta.started_at.isoformat(),
+                "@type": "xsd:dateTime",
+            },
+            "prov:endedAtTime": {
+                "@value": result_meta.ended_at.isoformat(),
+                "@type": "xsd:dateTime",
+            },
+            "usf:semanticModelVersion": query.context + "/latest",
+            "usf:ontologyVersion": result_meta.ontology_version,
+            "usf:contextApplied": query.context,
+            "usf:abacPolicy": result_meta.policy_version,
+            "usf:queryHash": result_meta.query_hash,
+            "usf:backend": backend_val,
+        },
+        "prov:wasAttributedTo": {
+            "@id": f"usf://user/{user.user_id}",
+        },
+        "prov:wasDerivedFrom": result_meta.data_sources,
+    }
 
 
 def build_prov_o(
@@ -19,14 +91,10 @@ def build_prov_o(
     backend: str | None = None,
 ) -> dict[str, Any]:
     """
-    Build a PROV-O JSON-LD provenance block.
-    
-    Based on W3C PROV-O: https://www.w3.org/TR/prov-o/
-    Activity = the query execution
-    Agent = the user
-    Entity = the result dataset
+    Legacy compatibility builder — same interface as original build_prov_o.
+    Returns a PROV-O JSON-LD @graph structure.
     """
-    now = utcnow().isoformat()
+    now = datetime.now(tz=timezone.utc).isoformat()
     activity_id = f"urn:usf:activity:{query_id}"
     agent_id = f"urn:usf:agent:{user_id}"
     entity_id = f"urn:usf:entity:result:{query_id}"

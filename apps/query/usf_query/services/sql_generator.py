@@ -141,3 +141,108 @@ def _time_grain_expr(grain: str, dialect: str) -> str | None:
         return f"DATE_TRUNC(event_date, {trunc_map.get(grain_lower, grain_lower.upper())}) AS period"
     else:  # postgres
         return f"DATE_TRUNC('{grain_lower}', event_date) AS period"
+
+
+def compile_metric_sql(
+    metric_name: str,
+    dimensions: list[str],
+    filters: dict,
+    time_range: dict,
+    context: str,
+    dialect: str = "postgres",
+) -> str:
+    """
+    Compile a metric name + dimensions + filters + time_range into warehouse-native SQL.
+
+    This is the public API entry point (per spec). Internally delegates to
+    generate_metric_sql with a synthetic metric dict built from the arguments.
+
+    Args:
+        metric_name: SDL metric identifier (used as measure column name)
+        dimensions:  List of dimension column names to GROUP BY
+        filters:     Dict of column→value filters to apply in WHERE clause
+        time_range:  Dict with optional keys: start, end, grain
+                     e.g. {"start": "2024-01-01", "end": "2024-12-31", "grain": "month"}
+        context:     USF context name (determines source table / filter)
+        dialect:     Target SQL dialect: postgres | snowflake | bigquery
+
+    Returns:
+        Transpiled SQL string ready for the target warehouse.
+    """
+    time_grain = time_range.get("grain") if time_range else None
+
+    # Build time-range filters
+    merged_filters = dict(filters or {})
+    if time_range:
+        start = time_range.get("start")
+        end = time_range.get("end")
+        if start:
+            merged_filters["event_date >="] = start
+        if end:
+            merged_filters["event_date <="] = end
+
+    # Handle >= / <= filter operators (not supported by simple generate_metric_sql)
+    # We build the WHERE clause manually for range conditions
+    range_parts: list[str] = []
+    simple_filters: dict = {}
+    for k, v in merged_filters.items():
+        if k.endswith(" >="):
+            col = k[:-3].strip()
+            range_parts.append(f"{col} >= '{v}'")
+        elif k.endswith(" <="):
+            col = k[:-3].strip()
+            range_parts.append(f"{col} <= '{v}'")
+        else:
+            simple_filters[k] = v
+
+    # Synthetic metric dict for generate_metric_sql
+    metric_dict: dict = {
+        "name": metric_name,
+        "type": "sum",
+        "measure": metric_name,
+        "dimensions": dimensions,
+        "table": f"{context}_{metric_name}_facts",
+        "contexts": {
+            context: {
+                "table": f"{context}_{metric_name}_facts",
+            }
+        },
+    }
+    if time_grain:
+        metric_dict["time_grains"] = [time_grain]
+
+    sql = generate_metric_sql(
+        metric=metric_dict,
+        context=context,
+        dialect=dialect,
+        dimensions=dimensions,
+        filters=simple_filters,
+        time_grain=time_grain,
+    )
+
+    # Inject range filters if any
+    if range_parts:
+        extra_where = " AND ".join(range_parts)
+        if "WHERE" in sql.upper():
+            # Append to existing WHERE clause (before GROUP BY)
+            idx = sql.upper().find("\nGROUP BY")
+            if idx != -1:
+                sql = sql[:idx] + f"\n  AND {extra_where}" + sql[idx:]
+            else:
+                sql = sql.rstrip() + f"\n  AND {extra_where}"
+        else:
+            idx = sql.upper().find("\nGROUP BY")
+            if idx != -1:
+                sql = sql[:idx] + f"\nWHERE {extra_where}" + sql[idx:]
+            else:
+                sql = sql.rstrip() + f"\nWHERE {extra_where}"
+
+    logger.info(
+        "compile_metric_sql",
+        metric=metric_name,
+        context=context,
+        dialect=dialect,
+        dimensions=dimensions,
+    )
+
+    return sql

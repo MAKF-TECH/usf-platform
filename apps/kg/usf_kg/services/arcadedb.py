@@ -28,17 +28,17 @@ class ArcadeDBClient:
         if self._client:
             await self._client.aclose()
 
-    async def query(self, cypher: str, params: dict | None = None) -> list[dict[str, Any]]:
-        """Execute a Cypher query and return result records."""
+    # ── Low-level Cypher execution ────────────────────────────────────────────
+
+    async def execute_cypher(self, query: str, params: dict | None = None) -> list[dict[str, Any]]:
+        """Execute a read-only Cypher query and return result records."""
         assert self._client, "ArcadeDBClient not started"
-        payload: dict[str, Any] = {"language": "cypher", "command": cypher}
+        payload: dict[str, Any] = {"language": "cypher", "command": query}
         if params:
             payload["params"] = params
-
         resp = await self._client.post(f"/query/{self._db}", json=payload)
         resp.raise_for_status()
-        data = resp.json()
-        return data.get("result", [])
+        return resp.json().get("result", [])
 
     async def command(self, cypher: str, params: dict | None = None) -> list[dict[str, Any]]:
         """Execute a Cypher write command (CREATE, MERGE, SET, DELETE)."""
@@ -46,10 +46,63 @@ class ArcadeDBClient:
         payload: dict[str, Any] = {"language": "cypher", "command": cypher}
         if params:
             payload["params"] = params
-
         resp = await self._client.post(f"/command/{self._db}", json=payload)
         resp.raise_for_status()
         return resp.json().get("result", [])
+
+    # ── Node operations ───────────────────────────────────────────────────────
+
+    async def upsert_node(self, label: str, iri: str, properties: dict[str, Any]) -> str:
+        """Upsert a node by IRI and return its IRI."""
+        prop_str = ", ".join(f"n.`{k}` = ${k}" for k in properties)
+        cypher = f"""
+        MERGE (n:{label} {{iri: $iri}})
+        ON CREATE SET n.iri = $iri{', ' + prop_str if prop_str else ''}
+        ON MATCH  SET {prop_str if prop_str else 'n.iri = $iri'}
+        RETURN n.iri AS iri
+        """
+        result = await self.command(cypher, {"iri": iri, **properties})
+        return result[0].get("iri", iri) if result else iri
+
+    async def get_node(self, iri: str) -> dict[str, Any] | None:
+        """Fetch a node by IRI. Returns None if not found."""
+        cypher = "MATCH (n {iri: $iri}) RETURN n LIMIT 1"
+        result = await self.execute_cypher(cypher, {"iri": iri})
+        if not result:
+            return None
+        node = result[0].get("n") or result[0]
+        return node if isinstance(node, dict) else None
+
+    # ── Edge operations ───────────────────────────────────────────────────────
+
+    async def create_edge(
+        self,
+        src_iri: str,
+        tgt_iri: str,
+        rel_type: str,
+        props: dict[str, Any] | None = None,
+    ) -> bool:
+        """Create or merge an edge between two nodes. Returns True on success."""
+        cypher = f"""
+        MATCH (a {{iri: $from_iri}}), (b {{iri: $to_iri}})
+        MERGE (a)-[r:{rel_type}]->(b)
+        RETURN r
+        """
+        params: dict[str, Any] = {"from_iri": src_iri, "to_iri": tgt_iri}
+        if props:
+            prop_str = ", ".join(f"r.`{k}` = ${k}" for k in props)
+            cypher = f"""
+            MATCH (a {{iri: $from_iri}}), (b {{iri: $to_iri}})
+            MERGE (a)-[r:{rel_type}]->(b)
+            ON CREATE SET {prop_str}
+            ON MATCH  SET {prop_str}
+            RETURN r
+            """
+            params.update(props)
+        result = await self.command(cypher, params)
+        return len(result) > 0
+
+    # ── Legacy alias ──────────────────────────────────────────────────────────
 
     async def upsert_entity(
         self,
@@ -57,14 +110,8 @@ class ArcadeDBClient:
         entity_type: str,
         properties: dict[str, Any],
     ) -> None:
-        """Upsert an entity node by IRI."""
-        prop_str = ", ".join(f"n.`{k}` = ${k}" for k in properties)
-        cypher = f"""
-        MERGE (n:{entity_type} {{iri: $iri}})
-        ON CREATE SET n.iri = $iri, {prop_str}
-        ON MATCH  SET {prop_str}
-        """
-        await self.command(cypher, {"iri": iri, **properties})
+        """Upsert an entity node by IRI (legacy alias for upsert_node)."""
+        await self.upsert_node(entity_type, iri, properties)
 
     async def upsert_relationship(
         self,
@@ -73,27 +120,58 @@ class ArcadeDBClient:
         to_iri: str,
         properties: dict[str, Any] | None = None,
     ) -> None:
-        """Upsert a relationship between two entities."""
-        cypher = f"""
-        MATCH (a {{iri: $from_iri}}), (b {{iri: $to_iri}})
-        MERGE (a)-[r:{rel_type}]->(b)
+        """Upsert a relationship between two entities (legacy alias for create_edge)."""
+        await self.create_edge(from_iri, to_iri, rel_type, properties)
+
+    # ── Graph traversal ───────────────────────────────────────────────────────
+
+    async def traverse(
+        self,
+        start_iri: str,
+        depth: int = 2,
+        rel_types: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """
-        if properties:
-            prop_str = ", ".join(f"r.`{k}` = ${k}" for k in properties)
-            cypher += f" ON CREATE SET {prop_str} ON MATCH SET {prop_str}"
-        await self.command(cypher, {"from_iri": from_iri, "to_iri": to_iri, **(properties or {})})
+        BFS traversal from start_iri up to `depth` hops.
+        Optionally filter by relationship types.
+        Returns list of {src, rel, tgt, depth} dicts.
+        """
+        rel_filter = ""
+        if rel_types:
+            rel_filter = ":" + "|".join(rel_types)
+
+        cypher = f"""
+        MATCH path = (start {{iri: $start_iri}})-[{rel_filter}*1..{depth}]->(end)
+        UNWIND relationships(path) AS r
+        RETURN
+            startNode(r).iri AS src,
+            type(r)          AS rel,
+            endNode(r).iri   AS tgt,
+            length(path)     AS depth
+        """
+        return await self.execute_cypher(cypher, {"start_iri": start_iri})
+
+    # ── Vector search ─────────────────────────────────────────────────────────
 
     async def vector_search(
         self,
-        entity_type: str,
         embedding: list[float],
         top_k: int = 10,
+        label: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Vector similarity search on entity embeddings."""
-        # ArcadeDB vector index query via Cypher
-        cypher = f"""
-        CALL db.index.vector.queryNodes('{entity_type}_embedding', $top_k, $embedding)
-        YIELD node, score
-        RETURN node.iri AS iri, score
         """
-        return await self.query(cypher, {"top_k": top_k, "embedding": embedding})
+        Vector similarity search on entity embeddings.
+        label: optional node label to restrict search (maps to index name).
+        """
+        index_name = f"{label}_embedding" if label else "entity_embedding"
+        cypher = f"""
+        CALL db.index.vector.queryNodes('{index_name}', $top_k, $embedding)
+        YIELD node, score
+        RETURN node.iri AS iri, node AS properties, score
+        """
+        try:
+            return await self.execute_cypher(cypher, {"top_k": top_k, "embedding": embedding})
+        except httpx.HTTPStatusError as exc:
+            # Vector index may not exist — return empty rather than 500
+            logger.warning("Vector search failed (index may not exist)", index=index_name, error=str(exc))
+            return []

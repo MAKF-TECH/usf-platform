@@ -10,6 +10,7 @@ Supports:
 All pipelines use incremental loading with dlt state tracking.
 """
 
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -18,6 +19,17 @@ from dlt.sources import DltResource
 from dlt.sources.filesystem import filesystem, read_csv, read_parquet
 from dlt.sources.sql_database import sql_database
 from loguru import logger
+
+
+@dataclass
+class PipelineResult:
+    """Stats returned after a successful dlt pipeline run."""
+    pipeline_name: str
+    rows_loaded: int
+    schemas_detected: list[str] = field(default_factory=list)
+    duration_seconds: float = 0.0
+    status: str = "success"
+    load_info: str = ""
 
 
 # ── CSV / Parquet ─────────────────────────────────────────────────────────────
@@ -128,16 +140,37 @@ def run_structured_pipeline(
     pipeline_name: str,
     destination_url: str,
     dataset_name: str = "staging",
-) -> dlt.Pipeline:
-    """Execute a dlt pipeline and return the pipeline object."""
+) -> PipelineResult:
+    """Execute a dlt pipeline and return PipelineResult with stats."""
+    import time
+
     pipeline = dlt.pipeline(
         pipeline_name=pipeline_name,
         destination=dlt.destinations.postgres(destination_url),
         dataset_name=dataset_name,
     )
+    t0 = time.monotonic()
     load_info = pipeline.run(source)
-    logger.info(
-        "dlt pipeline complete",
-        extra={"pipeline": pipeline_name, "load_info": str(load_info)},
+    duration = time.monotonic() - t0
+
+    # Extract row counts from trace
+    rows_loaded = 0
+    schemas: list[str] = []
+    try:
+        norm_info = pipeline.last_trace.last_normalize_info
+        if norm_info:
+            row_counts = getattr(norm_info, "row_counts", {}) or {}
+            rows_loaded = sum(row_counts.values())
+            schemas = list(row_counts.keys())
+    except Exception:
+        pass
+
+    result = PipelineResult(
+        pipeline_name=pipeline_name,
+        rows_loaded=rows_loaded,
+        schemas_detected=schemas,
+        duration_seconds=round(duration, 3),
+        load_info=str(load_info),
     )
-    return pipeline
+    logger.info("dlt pipeline complete", extra={"pipeline": pipeline_name, "rows": rows_loaded})
+    return result

@@ -138,6 +138,21 @@ async def nl_to_sparql(
     raise NL2SPARQLError(question=question, last_error=last_error)
 
 
+def validate_sparql_syntax(sparql: str) -> list[str]:
+    """
+    Public API: validate SPARQL syntax using rdflib.
+    Returns a list of error strings (empty list = valid).
+    """
+    if not HAS_RDFLIB:
+        return []  # Can't validate without rdflib
+    try:
+        from rdflib.plugins.sparql import prepareQuery
+        prepareQuery(sparql)
+        return []
+    except Exception as exc:
+        return [str(exc)]
+
+
 async def execute_nl_query(question: str, ontology_context: str, context: str | None, tenant_id: str | None) -> QueryResult:
     """Full NL query pipeline: NL → SPARQL → execute → return QueryResult."""
     sparql = await nl_to_sparql(question, ontology_context)

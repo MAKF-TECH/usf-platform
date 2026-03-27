@@ -89,3 +89,50 @@ def infer_column_semantics(
     if any(k in name_lower for k in ("is_", "has_", "flag", "suspicious", "laundering")):
         return "boolean_flag"
     return "generic"
+
+
+# ── Async introspection (for use in async FastAPI endpoints) ──────────────────
+
+async def async_introspect_postgres(
+    connection_string: str,
+    schema: str = "public",
+    table_names: list[str] | None = None,
+) -> dict[str, Any]:
+    """
+    Async wrapper for introspect_postgres.
+    Runs the synchronous SQLAlchemy introspection in a thread pool to avoid
+    blocking the event loop.
+    """
+    import asyncio
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(
+        None,
+        lambda: introspect_postgres(connection_string, schema, table_names),
+    )
+
+
+async def read_dbt_yaml(project_path: str) -> list[dict[str, Any]]:
+    """
+    Parse dbt schema.yml files from a project directory.
+    Returns list of model definitions: {name, description, columns[]}.
+    """
+    import asyncio
+    from pathlib import Path
+
+    p = Path(project_path)
+
+    def _scan() -> list[dict[str, Any]]:
+        models: list[dict[str, Any]] = []
+        for yml_file in p.rglob("schema.yml"):
+            result = load_dbt_yaml(yml_file)
+            for name, defn in result.items():
+                models.append({
+                    "name": name,
+                    "description": defn.get("description", ""),
+                    "columns": defn.get("columns", []),
+                    "source_file": str(yml_file),
+                })
+        return models
+
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _scan)
