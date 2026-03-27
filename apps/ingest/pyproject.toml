@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "usf-ingest"
+version = "0.1.0"
+description = "USF Ingest Service — structured + semi-structured ingestion"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlmodel>=0.0.19",
+    "psycopg[async]>=3.2",
+    "loguru>=0.7",
+    "httpx>=0.27",
+    "dlt>=1.0",
+    "celery>=5.4",
+    "redis>=5.0",
+    "aiokafka>=0.11",
+    "openlineage-python>=1.0",
+    "fhir.resources>=7.0",
+    "cimpy>=0.3",
+    "rdflib>=7.0",
+    "sqlglot>=25.0",
+    "alembic>=1.13",
+    "python-multipart>=0.0.9",
+    "pydantic-settings>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "httpx", "ruff", "mypy"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["usf_ingest"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
