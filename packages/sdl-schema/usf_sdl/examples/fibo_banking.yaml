@@ -1,0 +1,351 @@
+# usf-platform/packages/sdl-schema/usf_sdl/examples/fibo_banking.yaml
+# USF FIBO Banking Pilot — Complete SDL Example
+# Covers: Account, Transaction, LegalEntity, and the total_exposure metric.
+
+sdl_version: "1.0"
+tenant: acme-bank
+ontology_module: fibo
+
+# ─────────────────────────────────────────────────────────────────
+# CONTEXTS
+# ─────────────────────────────────────────────────────────────────
+
+contexts:
+  - name: risk
+    description: >
+      Credit risk context. Measures and entities are defined
+      from the perspective of the Risk Management department.
+      Uses end-of-day (EOD) balances and includes all exposure types.
+
+  - name: finance
+    description: >
+      Finance reporting context. Metrics reflect settled transactions
+      only, using current operational balances. Aligned with BCBS 239
+      reporting requirements.
+
+  - name: ops
+    description: >
+      Operational context. Real-time current balances and pending transactions.
+      Used by Operations and Treasury teams.
+
+# ─────────────────────────────────────────────────────────────────
+# ACCESS POLICIES
+# ─────────────────────────────────────────────────────────────────
+
+access_policies:
+  - name: public_read
+    description: "Readable by all authenticated users"
+    read: [role:admin, role:risk_analyst, role:finance_analyst, role:auditor, role:viewer]
+    pii: false
+    clearance: internal
+
+  - name: risk_restricted
+    description: "Restricted to Risk and Compliance roles"
+    read: [role:admin, role:risk_analyst, role:auditor]
+    pii: false
+    clearance: confidential
+    row_filter:
+      role:risk_analyst: "risk_department = true"
+
+  - name: pii_entity
+    description: "Contains PII — masked except for privileged roles"
+    read: [role:admin, role:compliance_officer]
+    pii: true
+    clearance: restricted
+
+# ─────────────────────────────────────────────────────────────────
+# ENTITIES
+# ─────────────────────────────────────────────────────────────────
+
+entities:
+  - name: LegalEntity
+    ontology_class: fibo:LegalEntity
+    description: >
+      A legal entity: bank, corporate, or individual. In the FIBO pilot
+      this is the primary counterparty type for exposure analysis.
+    sql_table: legal_entities
+    properties:
+      - name: entity_id
+        ontology_property: fibo:hasIdentifier
+        sql_column: entity_id
+        type: string
+        nullable: false
+        description: "Internal unique identifier"
+
+      - name: legal_name
+        ontology_property: fibo:hasLegalName
+        sql_column: legal_name
+        type: string
+        nullable: false
+        description: "Registered legal name (e.g., Deutsche Bank AG)"
+
+      - name: lei_code
+        ontology_property: fibo:hasLEI
+        sql_column: lei_code
+        type: string
+        description: "Legal Entity Identifier (20-char ISO 17442)"
+
+      - name: country
+        ontology_property: lcc:hasCountry
+        sql_column: country_code
+        type: string
+        description: "ISO 3166-1 alpha-2 country code"
+
+      - name: entity_type
+        ontology_property: fibo:EntityType
+        sql_column: entity_type
+        type: string
+        allowed_values: [bank, corporate, sovereign, fund, individual]
+
+    access_policy: public_read
+
+  - name: CommercialBank
+    ontology_class: fibo:CommercialBank
+    description: >
+      A commercial bank that accepts deposits and makes loans.
+      Subtype of LegalEntity in FIBO.
+    sql_table: banks
+    properties:
+      - name: bank_id
+        ontology_property: fibo:hasIdentifier
+        sql_column: bank_id
+        type: string
+        nullable: false
+
+      - name: bank_name
+        ontology_property: fibo:hasLegalName
+        sql_column: bank_name
+        type: string
+        nullable: false
+
+      - name: swift_code
+        ontology_property: fibo:hasSWIFTCode
+        sql_column: swift_code
+        type: string
+
+      - name: country
+        ontology_property: lcc:hasCountry
+        sql_column: country_code
+        type: string
+
+    access_policy: public_read
+
+  - name: BankAccount
+    ontology_class: fibo:Account
+    description: >
+      A financial account held at a commercial bank.
+      Balance definition varies by context (EOD vs current).
+    sql_table: accounts
+    contexts:
+      risk:
+        description: "Account as credit risk exposure unit (EOD balance)"
+      finance:
+        description: "Account as finance reporting entity (current balance)"
+      ops:
+        description: "Account as operational entity (real-time balance)"
+    properties:
+      - name: account_id
+        ontology_property: fibo:hasIdentifier
+        sql_column: account_id
+        type: string
+        nullable: false
+
+      - name: account_number
+        ontology_property: fibo:hasAccountNumber
+        sql_column: account_number
+        type: string
+        nullable: false
+
+      - name: balance
+        ontology_property: fibo:hasBalance
+        type: decimal
+        description: "Monetary balance — definition differs by context"
+        contexts:
+          risk:
+            sql_column: eod_balance      # End-of-day ledger balance
+          finance:
+            sql_column: current_balance  # Current operational balance
+          ops:
+            sql_column: realtime_balance # Real-time balance (may be unconfirmed)
+
+      - name: account_type
+        ontology_property: fibo:AccountType
+        sql_column: account_type
+        type: string
+        allowed_values: [checking, savings, loan, derivative, bond, custody]
+
+      - name: holder
+        ontology_property: fibo:hasAccountHolder
+        sql_column: legal_entity_id
+        type: string
+        references:
+          entity: LegalEntity
+          property: entity_id
+
+      - name: currency
+        ontology_property: fibo:hasCurrency
+        sql_column: currency_code
+        type: string
+        description: "ISO 4217 currency code"
+
+    access_policy: public_read
+
+  - name: FinancialTransaction
+    ontology_class: fibo:FinancialTransaction
+    description: >
+      A monetary transaction between two parties. Source: IBM AML dataset.
+      Used to compute exposure metrics.
+    sql_table: transactions
+    properties:
+      - name: transaction_id
+        ontology_property: fibo:hasIdentifier
+        sql_column: transaction_id
+        type: string
+        nullable: false
+
+      - name: party_a
+        ontology_property: fibo:hasPartyA
+        sql_column: account_from_id
+        type: string
+        references:
+          entity: BankAccount
+          property: account_id
+
+      - name: party_b
+        ontology_property: fibo:hasPartyB
+        sql_column: account_to_id
+        type: string
+        references:
+          entity: BankAccount
+          property: account_id
+
+      - name: amount
+        ontology_property: fibo:hasMonetaryAmount
+        sql_column: amount
+        type: decimal
+        nullable: false
+
+      - name: currency
+        ontology_property: fibo:hasCurrency
+        sql_column: currency
+        type: string
+
+      - name: transaction_type
+        ontology_property: fibo:hasTransactionType
+        sql_column: type
+        type: string
+        allowed_values: [loan, derivative, bond, transfer, payment, deposit, withdrawal]
+
+      - name: transaction_date
+        ontology_property: fibo:hasTransactionDate
+        sql_column: transaction_date
+        type: date
+        nullable: false
+
+      - name: status
+        ontology_property: fibo:hasStatus
+        sql_column: status
+        type: string
+        allowed_values: [pending, settled, cancelled, failed]
+
+      - name: is_laundering
+        ontology_property: fibo:hasSuspiciousFlag
+        sql_column: is_laundering
+        type: boolean
+        description: "AML flag from IBM dataset (pilot only)"
+
+    access_policy: risk_restricted
+
+# ─────────────────────────────────────────────────────────────────
+# METRICS
+# ─────────────────────────────────────────────────────────────────
+
+metrics:
+  - name: total_exposure_by_counterparty
+    ontology_class: fibo:FinancialExposure
+    description: >
+      Total monetary exposure aggregated by counterparty legal entity.
+      The 'balance' in context 'risk' means EOD balance; in 'finance' means current balance.
+      This is the primary pilot query metric.
+    type: sum
+    measure: amount
+    measure_entity: FinancialTransaction
+    dimensions:
+      - name: counterparty_name
+        entity: LegalEntity
+        property: legal_name
+        ontology_property: fibo:hasLegalName
+      - name: counterparty_country
+        entity: LegalEntity
+        property: country
+        ontology_property: lcc:hasCountry
+      - name: transaction_type
+        entity: FinancialTransaction
+        property: transaction_type
+        ontology_property: fibo:hasTransactionType
+    contexts:
+      risk:
+        description: "Exposure from credit risk instruments only"
+        filter: "t.transaction_type IN ('loan', 'derivative', 'bond')"
+      finance:
+        description: "Settled transactions only for finance reporting"
+        filter: "t.status = 'settled'"
+    default_filter: "t.status != 'cancelled'"
+    time_grains: [day, week, month, quarter, year]
+    time_column: "t.transaction_date"
+    time_entity: FinancialTransaction
+    access_policy:
+      read: [role:risk_analyst, role:finance_analyst, role:auditor]
+      pii: false
+      clearance: confidential
+    examples:
+      - description: "Total EU counterparty exposure for Q1 2024"
+        parameters:
+          dimensions: [counterparty_name, counterparty_country]
+          filters: {counterparty_country: EU}
+          time_range: {start: "2024-01-01", end: "2024-03-31", grain: quarter}
+          context: risk
+
+  - name: transaction_volume_by_type
+    ontology_class: fibo:FinancialTransaction
+    description: "Count of transactions grouped by type and time period"
+    type: count
+    measure: transaction_id
+    measure_entity: FinancialTransaction
+    dimensions:
+      - name: transaction_type
+        entity: FinancialTransaction
+        property: transaction_type
+        ontology_property: fibo:hasTransactionType
+      - name: status
+        entity: FinancialTransaction
+        property: status
+        ontology_property: fibo:hasStatus
+    time_grains: [day, month, quarter]
+    time_column: "t.transaction_date"
+    time_entity: FinancialTransaction
+    access_policy: public_read
+
+  - name: suspicious_transaction_count
+    ontology_class: fibo:SuspiciousActivity
+    description: "Count of flagged AML suspicious transactions (pilot only)"
+    type: count
+    measure: transaction_id
+    measure_entity: FinancialTransaction
+    dimensions:
+      - name: counterparty_name
+        entity: LegalEntity
+        property: legal_name
+        ontology_property: fibo:hasLegalName
+      - name: transaction_type
+        entity: FinancialTransaction
+        property: transaction_type
+        ontology_property: fibo:hasTransactionType
+    default_filter: "t.is_laundering = true"
+    time_grains: [day, week, month, quarter]
+    time_column: "t.transaction_date"
+    time_entity: FinancialTransaction
+    access_policy:
+      read: [role:admin, role:compliance_officer, role:risk_analyst]
+      pii: false
+      clearance: restricted

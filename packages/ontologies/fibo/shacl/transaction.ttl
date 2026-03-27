@@ -1,0 +1,101 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# FIBO financial transaction class
+# Using FBC/FinancialInstruments is not the right module for transactions.
+# The correct FIBO class for a financial transaction is in FND/Transactions:
+@prefix fibo-fnd-txn: <https://spec.edmcouncil.org/fibo/ontology/FND/Transactions/RESTfulInteractions/> .
+# For monetary transactions (payments, transfers), the canonical class is:
+@prefix fibo-fnd-pas: <https://spec.edmcouncil.org/fibo/ontology/FND/ProductsAndServices/PaymentsAndSchedules/> .
+@prefix fibo-be-le:   <https://spec.edmcouncil.org/fibo/ontology/BE/LegalEntities/LegalPersons/> .
+@prefix fibo-fbc-ps:  <https://spec.edmcouncil.org/fibo/ontology/FBC/ProductsAndServices/FinancialProductsAndServices/> .
+@prefix fibo-fnd-acc: <https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/> .
+@prefix usf: <https://usf.makf.tech/ontology/> .
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SHACL Shape for usf FinancialTransaction
+# Aligned to FIBO FND/Transactions concepts; uses usf:FinancialTransaction
+# as the target class (FIBO transaction taxonomy is deep — we map via owl:sameAs)
+# ──────────────────────────────────────────────────────────────────────────────
+
+usf:FinancialTransactionShape a sh:NodeShape ;
+    sh:targetClass usf:FinancialTransaction ;
+    dcterms:description "Validates financial transaction instances (FIBO-aligned)" ;
+
+    # Transaction ID — required
+    sh:property [
+        sh:path usf:transactionId ;
+        sh:name "transactionId" ;
+        sh:description "Unique transaction identifier" ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Amount — required
+    sh:property [
+        sh:path usf:amount ;
+        sh:name "amount" ;
+        sh:description "Transaction amount (numeric)" ;
+        sh:datatype xsd:decimal ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Currency — required ISO 4217
+    sh:property [
+        sh:path usf:currency ;
+        sh:name "currency" ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[A-Z]{3}$" ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Timestamp — required
+    sh:property [
+        sh:path usf:timestamp ;
+        sh:name "timestamp" ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Originator account — required
+    sh:property [
+        sh:path usf:fromAccount ;
+        sh:name "fromAccount" ;
+        sh:class fibo-fbc-ps:Account ;
+        sh:minCount 1 ;
+        sh:nodeKind sh:IRI ;
+    ] ;
+
+    # Beneficiary account — required
+    sh:property [
+        sh:path usf:toAccount ;
+        sh:name "toAccount" ;
+        sh:class fibo-fbc-ps:Account ;
+        sh:minCount 1 ;
+        sh:nodeKind sh:IRI ;
+    ] ;
+
+    # Transaction type — optional
+    sh:property [
+        sh:path usf:transactionType ;
+        sh:name "transactionType" ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:in ( "wire" "ach" "swift" "sepa" "cash" "internal" "check" ) ;
+    ] ;
+
+    # AML flag — optional
+    sh:property [
+        sh:path usf:isFlagged ;
+        sh:name "isFlagged" ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+    ] .

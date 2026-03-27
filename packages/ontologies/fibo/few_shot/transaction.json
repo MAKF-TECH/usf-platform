@@ -1,0 +1,33 @@
+[
+  {
+    "text": "On 14 March 2024, a SWIFT payment of EUR 2,500,000 was transferred from account DE89370400440532013000 to account FR7630006000011234567890189 with reference TXN-2024-EUR-0042.",
+    "extractions": [
+      {"class": "fibo:Transaction", "text": "SWIFT payment of EUR 2,500,000", "attributes": {"transaction_id": "TXN-2024-EUR-0042", "transaction_type": "SWIFTPayment", "currency": "EUR", "amount": "2500000", "value_date": "2024-03-14", "from_account": "DE89370400440532013000", "to_account": "FR7630006000011234567890189"}}
+    ]
+  },
+  {
+    "text": "The bond purchase transaction (ref: BND-2024-US-1178) settled on T+2 for a face value of USD 10,000,000 at a price of 98.75, yielding an effective cost of USD 9,875,000.",
+    "extractions": [
+      {"class": "fibo:Transaction", "text": "bond purchase transaction (ref: BND-2024-US-1178)", "attributes": {"transaction_id": "BND-2024-US-1178", "transaction_type": "BondPurchase", "currency": "USD", "face_value": "10000000", "price": "98.75", "settlement_cost": "9875000", "settlement_convention": "T+2"}}
+    ]
+  },
+  {
+    "text": "Three suspicious transactions were flagged: a cash deposit of USD 9,800 on 2 January 2024, followed by an immediate wire transfer of USD 9,750 to a foreign account on 3 January 2024.",
+    "extractions": [
+      {"class": "fibo:Transaction", "text": "cash deposit of USD 9,800 on 2 January 2024", "attributes": {"transaction_type": "CashDeposit", "currency": "USD", "amount": "9800", "value_date": "2024-01-02", "aml_flag": "suspicious"}},
+      {"class": "fibo:Transaction", "text": "wire transfer of USD 9,750 to a foreign account on 3 January 2024", "attributes": {"transaction_type": "WireTransfer", "currency": "USD", "amount": "9750", "value_date": "2024-01-03", "aml_flag": "suspicious"}}
+    ]
+  },
+  {
+    "text": "The FX spot transaction executed on 20 February 2024 converted GBP 5,000,000 to EUR 5,850,000 at an exchange rate of 1.1700, settling two business days later.",
+    "extractions": [
+      {"class": "fibo:Transaction", "text": "FX spot transaction executed on 20 February 2024", "attributes": {"transaction_type": "FXSpot", "from_currency": "GBP", "from_amount": "5000000", "to_currency": "EUR", "to_amount": "5850000", "exchange_rate": "1.1700", "trade_date": "2024-02-20"}}
+    ]
+  },
+  {
+    "text": "Drawdown No. 3 under the revolving credit facility, in the amount of EUR 15,000,000, was made on 30 April 2024 with a maturity date of 31 July 2024.",
+    "extractions": [
+      {"class": "fibo:Transaction", "text": "Drawdown No. 3 under the revolving credit facility, in the amount of EUR 15,000,000", "attributes": {"transaction_type": "Drawdown", "drawdown_number": "3", "currency": "EUR", "amount": "15000000", "drawdown_date": "2024-04-30", "maturity_date": "2024-07-31"}}
+    ]
+  }
+]

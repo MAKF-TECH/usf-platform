@@ -1,0 +1,76 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# FIBO namespaces
+@prefix fibo-fbc-ps: <https://spec.edmcouncil.org/fibo/ontology/FBC/ProductsAndServices/FinancialProductsAndServices/> .
+@prefix fibo-be-le:  <https://spec.edmcouncil.org/fibo/ontology/BE/LegalEntities/LegalPersons/> .
+@prefix fibo-fnd-acc: <https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/CurrencyAmount/> .
+@prefix usf: <https://usf.makf.tech/ontology/> .
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SHACL Shapes for fibo-fbc-ps:Account
+# ──────────────────────────────────────────────────────────────────────────────
+
+usf:AccountShape a sh:NodeShape ;
+    sh:targetClass fibo-fbc-ps:Account ;
+    dcterms:description "Validates FIBO Account instances ingested into USF" ;
+
+    # Account identifier — required string
+    sh:property [
+        sh:path usf:accountId ;
+        sh:name "accountId" ;
+        sh:description "Internal account identifier" ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Account type — required IRI
+    sh:property [
+        sh:path usf:accountType ;
+        sh:name "accountType" ;
+        sh:description "Type of account (checking, savings, loan, ...)" ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+    ] ;
+
+    # Account holder — must link to a LegalEntity
+    sh:property [
+        sh:path usf:heldBy ;
+        sh:name "heldBy" ;
+        sh:description "Legal entity that holds this account" ;
+        sh:class fibo-be-le:LegalEntity ;
+        sh:minCount 1 ;
+        sh:nodeKind sh:IRI ;
+    ] ;
+
+    # Currency — optional, must be 3-letter ISO code
+    sh:property [
+        sh:path usf:currency ;
+        sh:name "currency" ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[A-Z]{3}$" ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Balance — optional monetary amount
+    sh:property [
+        sh:path usf:balance ;
+        sh:name "balance" ;
+        sh:class fibo-fnd-acc:MonetaryAmount ;
+        sh:maxCount 1 ;
+        sh:nodeKind sh:BlankNodeOrIRI ;
+    ] ;
+
+    # Status — optional string
+    sh:property [
+        sh:path usf:accountStatus ;
+        sh:name "accountStatus" ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:in ( "active" "inactive" "frozen" "closed" ) ;
+    ] .

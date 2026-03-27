@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "usf-worker"
+version = "0.1.0"
+description = "USF Worker Service — Celery task queue for async pipeline execution"
+requires-python = ">=3.12"
+dependencies = [
+    "celery>=5.4",
+    "redis>=5.0",
+    "loguru>=0.7",
+    "httpx>=0.27",
+    "sqlmodel>=0.0.19",
+    "psycopg[async]>=3.2",
+    "psycopg2-binary>=2.9",  # Celery result backend uses sync psycopg2
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["usf_worker"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
