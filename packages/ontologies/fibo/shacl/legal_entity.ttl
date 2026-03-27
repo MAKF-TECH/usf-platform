@@ -1,0 +1,83 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+@prefix fibo-be-le:  <https://spec.edmcouncil.org/fibo/ontology/BE/LegalEntities/LegalPersons/> .
+@prefix fibo-fbc-fi: <https://spec.edmcouncil.org/fibo/ontology/FBC/FunctionalEntities/FinancialInstitutions/> .
+@prefix usf: <https://usf.makf.tech/ontology/> .
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SHACL Shapes for fibo-be-le:LegalEntity
+# ──────────────────────────────────────────────────────────────────────────────
+
+usf:LegalEntityShape a sh:NodeShape ;
+    sh:targetClass fibo-be-le:LegalEntity ;
+    dcterms:description "Validates FIBO LegalEntity instances ingested into USF" ;
+
+    # Legal name — required
+    sh:property [
+        sh:path usf:legalName ;
+        sh:name "legalName" ;
+        sh:description "Official registered legal name" ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # LEI (Legal Entity Identifier) — optional but must be 20-char alphanumeric
+    sh:property [
+        sh:path usf:lei ;
+        sh:name "lei" ;
+        sh:description "ISO 17442 Legal Entity Identifier (20-char)" ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[A-Z0-9]{20}$" ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Jurisdiction — optional IRI
+    sh:property [
+        sh:path usf:jurisdiction ;
+        sh:name "jurisdiction" ;
+        sh:description "Country/jurisdiction of registration (ISO 3166-1 alpha-2)" ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[A-Z]{2}$" ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Entity type — required
+    sh:property [
+        sh:path usf:entityType ;
+        sh:name "entityType" ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+    ] .
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SHACL Shape for fibo-fbc-fi:CommercialBank (subtype of LegalEntity)
+# ──────────────────────────────────────────────────────────────────────────────
+
+usf:CommercialBankShape a sh:NodeShape ;
+    sh:targetClass fibo-fbc-fi:CommercialBank ;
+    dcterms:description "Additional constraints for CommercialBank instances" ;
+
+    # BIC/SWIFT code — optional but must match BIC format
+    sh:property [
+        sh:path usf:bic ;
+        sh:name "bic" ;
+        sh:description "BIC/SWIFT code (8 or 11 chars)" ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$" ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Regulator — optional IRI
+    sh:property [
+        sh:path usf:regulatedBy ;
+        sh:name "regulatedBy" ;
+        sh:description "Regulatory body overseeing this bank" ;
+        sh:nodeKind sh:IRI ;
+        sh:maxCount 5 ;
+    ] .

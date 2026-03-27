@@ -1,0 +1,36 @@
+[
+  {
+    "text": "The credit agreement dated 15 January 2024 between Deutsche Bank AG (the 'Lender'), a commercial bank incorporated in Germany, and TechCorp GmbH (the 'Borrower') provides for a revolving credit facility of EUR 50,000,000.",
+    "extractions": [
+      {"class": "fibo:LegalEntity", "text": "Deutsche Bank AG", "attributes": {"role": "lender", "entity_type": "CommercialBank", "jurisdiction": "Germany"}},
+      {"class": "fibo:LegalEntity", "text": "TechCorp GmbH", "attributes": {"role": "borrower", "entity_type": "Corporation", "jurisdiction": "Germany"}}
+    ]
+  },
+  {
+    "text": "BNP Paribas S.A., acting as agent bank, represents a syndicate of seventeen European financial institutions in the transaction.",
+    "extractions": [
+      {"class": "fibo:LegalEntity", "text": "BNP Paribas S.A.", "attributes": {"role": "agent_bank", "entity_type": "CommercialBank", "jurisdiction": "France"}},
+      {"class": "fibo:LegalEntity", "text": "seventeen European financial institutions", "attributes": {"role": "syndicate_member", "entity_type": "FinancialInstitution"}}
+    ]
+  },
+  {
+    "text": "The Borrower, Acme Holdings Ltd, is a special purpose vehicle registered in Luxembourg with LEI code 549300ABCDEF123456.",
+    "extractions": [
+      {"class": "fibo:LegalEntity", "text": "Acme Holdings Ltd", "attributes": {"entity_type": "SpecialPurposeVehicle", "jurisdiction": "Luxembourg", "lei": "549300ABCDEF123456"}}
+    ]
+  },
+  {
+    "text": "Goldman Sachs International, as the underwriting bank, has agreed to purchase up to USD 200 million of senior unsecured notes issued by Meridian Energy Corp.",
+    "extractions": [
+      {"class": "fibo:LegalEntity", "text": "Goldman Sachs International", "attributes": {"role": "underwriter", "entity_type": "InvestmentBank"}},
+      {"class": "fibo:LegalEntity", "text": "Meridian Energy Corp", "attributes": {"role": "issuer", "entity_type": "Corporation"}}
+    ]
+  },
+  {
+    "text": "The subsidiary, Westbridge Financial Services S.A., wholly owned by Westbridge Group PLC, acts as guarantor for all obligations under this agreement.",
+    "extractions": [
+      {"class": "fibo:LegalEntity", "text": "Westbridge Financial Services S.A.", "attributes": {"role": "guarantor", "entity_type": "Subsidiary"}},
+      {"class": "fibo:LegalEntity", "text": "Westbridge Group PLC", "attributes": {"role": "parent_company", "entity_type": "HoldingCompany"}}
+    ]
+  }
+]
