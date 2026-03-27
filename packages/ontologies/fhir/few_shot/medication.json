@@ -1,0 +1,37 @@
+[
+  {
+    "text": "MEDICATIONS ON ADMISSION: 1. Metformin 1000 mg oral twice daily (for type 2 diabetes). 2. Ramipril 5 mg oral once daily (for hypertension). 3. Atorvastatin 40 mg oral at night (for hypercholesterolaemia).",
+    "extractions": [
+      {"class": "fhir:Medication", "text": "Metformin 1000 mg oral twice daily", "attributes": {"drug_name": "Metformin", "snomed_ct": "372567009", "dose": "1000", "dose_unit": "mg", "route": "oral", "frequency": "twice_daily", "indication": "type2_diabetes"}},
+      {"class": "fhir:Medication", "text": "Ramipril 5 mg oral once daily", "attributes": {"drug_name": "Ramipril", "snomed_ct": "386872004", "dose": "5", "dose_unit": "mg", "route": "oral", "frequency": "once_daily", "indication": "hypertension"}},
+      {"class": "fhir:Medication", "text": "Atorvastatin 40 mg oral at night", "attributes": {"drug_name": "Atorvastatin", "snomed_ct": "373444002", "dose": "40", "dose_unit": "mg", "route": "oral", "frequency": "nocte", "indication": "hypercholesterolaemia"}}
+    ]
+  },
+  {
+    "text": "Rx: Amoxicillin 500 mg capsules. Three times daily for 7 days. Take with food. Do not use if allergic to penicillin. Supply: 21 capsules.",
+    "extractions": [
+      {"class": "fhir:Medication", "text": "Amoxicillin 500 mg capsules", "attributes": {"drug_name": "Amoxicillin", "snomed_ct": "372687004", "form": "capsule", "dose": "500", "dose_unit": "mg", "route": "oral", "frequency": "three_times_daily", "duration_days": "7", "quantity_supplied": "21", "food_instruction": "with_food", "contraindication": "penicillin_allergy"}}
+    ]
+  },
+  {
+    "text": "IV Morphine Sulphate 2.5–5 mg every 4 hours as needed for pain (maximum 30 mg in 24 hours). Monitor respiratory rate. Naloxone 400 mcg IM available if required.",
+    "extractions": [
+      {"class": "fhir:Medication", "text": "IV Morphine Sulphate 2.5–5 mg every 4 hours as needed", "attributes": {"drug_name": "Morphine Sulphate", "snomed_ct": "387173000", "route": "intravenous", "dose_min": "2.5", "dose_max": "5", "dose_unit": "mg", "frequency": "every_4_hours_prn", "max_daily_dose_mg": "30", "monitoring": "respiratory_rate", "opioid_class": true}},
+      {"class": "fhir:Medication", "text": "Naloxone 400 mcg IM", "attributes": {"drug_name": "Naloxone", "snomed_ct": "372890007", "route": "intramuscular", "dose": "400", "dose_unit": "mcg", "purpose": "opioid_reversal"}}
+    ]
+  },
+  {
+    "text": "The patient was commenced on dual antiplatelet therapy: Aspirin 75 mg once daily plus Clopidogrel 75 mg once daily for a minimum of 12 months post-PCI.",
+    "extractions": [
+      {"class": "fhir:Medication", "text": "Aspirin 75 mg once daily", "attributes": {"drug_name": "Aspirin", "snomed_ct": "387458008", "dose": "75", "dose_unit": "mg", "route": "oral", "frequency": "once_daily", "indication": "antiplatelet_post_PCI"}},
+      {"class": "fhir:Medication", "text": "Clopidogrel 75 mg once daily", "attributes": {"drug_name": "Clopidogrel", "snomed_ct": "372029008", "dose": "75", "dose_unit": "mg", "route": "oral", "frequency": "once_daily", "duration_months": "12", "indication": "antiplatelet_post_PCI"}}
+    ]
+  },
+  {
+    "text": "Insulin regimen: Lantus (insulin glargine) 20 units subcutaneous at bedtime. Novorapid (insulin aspart) 6 units subcutaneous with each meal, with sliding scale adjustment.",
+    "extractions": [
+      {"class": "fhir:Medication", "text": "Lantus (insulin glargine) 20 units subcutaneous at bedtime", "attributes": {"drug_name": "insulin glargine", "brand": "Lantus", "snomed_ct": "414515005", "dose": "20", "dose_unit": "units", "route": "subcutaneous", "frequency": "nocte", "insulin_type": "long_acting"}},
+      {"class": "fhir:Medication", "text": "Novorapid (insulin aspart) 6 units subcutaneous with each meal", "attributes": {"drug_name": "insulin aspart", "brand": "Novorapid", "snomed_ct": "411530009", "dose": "6", "dose_unit": "units", "route": "subcutaneous", "frequency": "with_meals", "insulin_type": "rapid_acting", "sliding_scale": true}}
+    ]
+  }
+]

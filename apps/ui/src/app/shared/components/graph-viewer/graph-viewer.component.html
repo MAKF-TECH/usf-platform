@@ -1,0 +1,86 @@
+<div class="graph-viewer-root">
+  <!-- Sidebar controls -->
+  <div class="graph-controls">
+    <!-- Search -->
+    <div class="control-section">
+      <label class="control-label">Search nodes</label>
+      <input
+        type="text"
+        class="input w-full"
+        placeholder="Label or IRI..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+      />
+      <span class="text-xs text-muted mt-1" style="display:block">
+        {{ filteredNodes().length }} / {{ nodes().length }} nodes
+      </span>
+    </div>
+
+    <!-- Layout -->
+    <div class="control-section">
+      <label class="control-label">Layout</label>
+      @for (l of layouts; track l) {
+        <button
+          class="btn btn-ghost layout-btn"
+          [class.active]="layout() === l"
+          (click)="layout.set(l)"
+        >{{ l | titlecase }}</button>
+      }
+    </div>
+
+    <!-- Display options -->
+    <div class="control-section">
+      <label class="control-label">Display</label>
+      <label class="checkbox-label">
+        <input type="checkbox"
+          [checked]="showLabels()"
+          (change)="showLabels.set($any($event.target).checked)" />
+        Show node labels
+      </label>
+      <div class="slider-row">
+        <span class="text-xs text-muted">Max nodes</span>
+        <input type="range" min="50" max="500" step="50"
+          class="slider"
+          [value]="maxNodes()"
+          (input)="maxNodes.set(+$any($event.target).value)" />
+        <span class="text-xs">{{ maxNodes() }}</span>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="control-section">
+      <label class="control-label">Node types</label>
+      <div class="legend-list">
+        @for (item of [
+          {cls:'Entity', color:'#3b5bdb'},
+          {cls:'Metric', color:'#7c3aed'},
+          {cls:'Event', color:'#0ea5e9'},
+          {cls:'Document', color:'#f59e0b'},
+          {cls:'Context', color:'#10b981'},
+          {cls:'Provenance', color:'#6b7280'}
+        ]; track item.cls) {
+          <div class="legend-item">
+            <span class="legend-dot" [style.background]="item.color"></span>
+            <span class="text-xs">{{ item.cls }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ECharts canvas -->
+  <div class="graph-canvas-wrap">
+    @if (isLoading()) {
+      <div class="graph-loading">
+        <div class="spinner"></div>
+        <span class="text-sm text-muted">Loading graph...</span>
+      </div>
+    }
+    <div
+      echarts
+      [options]="chartOption()"
+      (chartClick)="onChartClick($event)"
+      class="graph-canvas"
+    ></div>
+  </div>
+</div>

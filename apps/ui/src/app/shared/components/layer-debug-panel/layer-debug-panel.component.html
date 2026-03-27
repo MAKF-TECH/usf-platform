@@ -1,0 +1,162 @@
+<div class="ldp-root">
+  <div class="ldp-header" (click)="expanded.set(!expanded())">
+    <div class="ldp-title">
+      <span class="ldp-icon">⚙</span>
+      <span>Layer Debug Panel</span>
+      @if (trace()?.layer3?.cache_hit) {
+        <span class="badge badge-success" style="margin-left:8px">CACHE HIT</span>
+      }
+    </div>
+    <div class="ldp-header-right">
+      @if (trace()?.layer3?.query_time_ms) {
+        <span class="text-xs text-muted">{{ trace()?.layer3?.query_time_ms }}ms</span>
+      }
+      <span class="chevron" [class.open]="expanded()">▾</span>
+    </div>
+  </div>
+
+  @if (expanded()) {
+    <div class="ldp-body animate-in">
+      <!-- Layer tabs -->
+      <div class="ldp-tabs">
+        @for (l of layers; track l) {
+          <button
+            class="ldp-tab"
+            [class.active]="activeLayer() === l"
+            [class.has-data]="hasLayerData(l)"
+            (click)="activeLayer.set(l)"
+          >{{ layerNames[l] }}</button>
+        }
+      </div>
+
+      <!-- L1 Ingestion -->
+      @if (activeLayer() === 1 && trace()?.layer1; as l1) {
+        <div class="ldp-content animate-in">
+          <div class="ldp-row">
+            <span class="ldp-key">Parser</span>
+            <span class="ldp-val font-mono">{{ l1.parser }}</span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">Chunks</span>
+            <span class="ldp-val">{{ l1.chunks | number }}</span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">Extractions</span>
+            <span class="ldp-val">{{ l1.extractions | number }}</span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">Grounded</span>
+            <span class="ldp-val">
+              {{ l1.grounded | number }}
+              <span class="text-muted text-xs">({{ pct(l1.grounded / l1.extractions) }})</span>
+            </span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">Ungrounded</span>
+            <span class="ldp-val" style="color:var(--usf-warning)">
+              {{ l1.extractions - l1.grounded }} → quarantine
+            </span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">Confidence (mean)</span>
+            <span class="ldp-val" [style.color]="confidenceColor(l1.confidence_mean)">
+              {{ pct(l1.confidence_mean) }}
+            </span>
+          </div>
+          <!-- Confidence bar -->
+          <div class="conf-bar-wrap">
+            <div class="conf-bar" [style.width]="pct(l1.confidence_mean)"
+              [style.background]="confidenceColor(l1.confidence_mean)"></div>
+          </div>
+        </div>
+      } @else if (activeLayer() === 1) {
+        <div class="ldp-empty">No L1 trace available</div>
+      }
+
+      <!-- L2 KG -->
+      @if (activeLayer() === 2 && trace()?.layer2; as l2) {
+        <div class="ldp-content animate-in">
+          <div class="ldp-row">
+            <span class="ldp-key">Named Graph</span>
+            <span class="ldp-val font-mono text-xs">{{ l2.named_graph }}</span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">Ontology Version</span>
+            <span class="ldp-val">{{ l2.ontology_version }}</span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">Triples in Scope</span>
+            <span class="ldp-val">{{ l2.triples_in_scope | number }}</span>
+          </div>
+        </div>
+      } @else if (activeLayer() === 2) {
+        <div class="ldp-empty">No L2 trace available</div>
+      }
+
+      <!-- L3 Orchestration -->
+      @if (activeLayer() === 3 && trace()?.layer3; as l3) {
+        <div class="ldp-content animate-in">
+          <div class="ldp-row">
+            <span class="ldp-key">Context</span>
+            <span class="ldp-val"><span class="badge badge-info">{{ l3.context }}</span></span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">ABAC Decision</span>
+            <span class="ldp-val">
+              <span class="badge" [class.badge-success]="l3.abac_decision === 'allow'"
+                [class.badge-error]="l3.abac_decision === 'deny'">
+                {{ l3.abac_decision | uppercase }}
+              </span>
+            </span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">Backend</span>
+            <span class="ldp-val font-mono">{{ l3.backend }}</span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">Cache Hit</span>
+            <span class="ldp-val">
+              <span class="badge" [class.badge-success]="l3.cache_hit" [class.badge-neutral]="!l3.cache_hit">
+                {{ l3.cache_hit ? 'HIT' : 'MISS' }}
+              </span>
+            </span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">Query Time</span>
+            <span class="ldp-val">{{ l3.query_time_ms }}ms</span>
+          </div>
+          @if (l3.sql_generated) {
+            <div class="ldp-sql-section">
+              <span class="ldp-key">Generated SQL</span>
+              <pre class="code-block" style="margin-top:4px;font-size:11px">{{ l3.sql_generated }}</pre>
+            </div>
+          }
+          @if (l3.provenance) {
+            <div class="ldp-sql-section">
+              <span class="ldp-key">PROV-O</span>
+              <pre class="code-block" style="margin-top:4px;font-size:11px">{{ prettyJson(l3.provenance) }}</pre>
+            </div>
+          }
+        </div>
+      } @else if (activeLayer() === 3) {
+        <div class="ldp-empty">No L3 trace available</div>
+      }
+
+      <!-- L4 Consumption -->
+      @if (activeLayer() === 4 && trace()?.layer4; as l4) {
+        <div class="ldp-content animate-in">
+          <div class="ldp-row">
+            <span class="ldp-key">Response Format</span>
+            <span class="ldp-val font-mono">{{ l4.format }}</span>
+          </div>
+          <div class="ldp-row">
+            <span class="ldp-key">Response Size</span>
+            <span class="ldp-val">{{ l4.response_size_bytes | number }} bytes</span>
+          </div>
+        </div>
+      } @else if (activeLayer() === 4) {
+        <div class="ldp-empty">No L4 trace available</div>
+      }
+    </div>
+  }
+</div>
