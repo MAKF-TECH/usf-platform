@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+.nx/
+*.tsbuildinfo
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.tar
+
+# Secrets — NEVER commit these
+*.pem
+*.key
+.env
+secrets/
+credentials/
+
+# Data files (use DVC or external storage)
+*.parquet
+*.csv
+*.jsonl
+data/raw/
+pilot/datasets/raw/
+
+# Compiled
+*.class
+*.jar
+target/
