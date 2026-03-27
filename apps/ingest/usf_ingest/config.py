@@ -1,4 +1,5 @@
 from __future__ import annotations
+<<<<<<< HEAD
 
 import os
 from functools import lru_cache
@@ -9,6 +10,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+=======
+import os
+from functools import lru_cache
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+>>>>>>> c21bc52 (feat(data-eng): implement usf-ingest, usf-worker, usf-audit services + IBM AML pilot)
     DATABASE_URL: str = "postgresql+psycopg://usf:usf@postgres:5432/usf"
     VALKEY_URL: str = "redis://valkey:6379/0"
     REDPANDA_BROKERS: str = "redpanda:9092"
@@ -21,7 +30,10 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = "usf-ingest"
     LOG_LEVEL: str = "INFO"
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> c21bc52 (feat(data-eng): implement usf-ingest, usf-worker, usf-audit services + IBM AML pilot)
 @lru_cache
 def get_settings() -> Settings:
     return Settings()

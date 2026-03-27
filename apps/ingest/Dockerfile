@@ -15,9 +15,13 @@ RUN pip install --no-cache-dir -e ".[dev]" || pip install --no-cache-dir -e .
 COPY usf_ingest/ usf_ingest/
 
 USER appuser
+<<<<<<< HEAD
 
 EXPOSE 8000
 
+=======
+EXPOSE 8000
+>>>>>>> c21bc52 (feat(data-eng): implement usf-ingest, usf-worker, usf-audit services + IBM AML pilot)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 

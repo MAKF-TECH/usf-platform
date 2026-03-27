@@ -4,8 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "usf-ingest"
+<<<<<<< HEAD
 version = "0.2.0"
 description = "USF Ingest Service — structured + semi-structured + unstructured ingestion paths"
+=======
+version = "0.1.0"
+description = "USF Ingest Service — structured + semi-structured ingestion"
+>>>>>>> c21bc52 (feat(data-eng): implement usf-ingest, usf-worker, usf-audit services + IBM AML pilot)
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
@@ -19,12 +24,15 @@ dependencies = [
     "redis>=5.0",
     "aiokafka>=0.11",
     "openlineage-python>=1.0",
+<<<<<<< HEAD
     # Unstructured pipeline deps
     "langextract>=0.1",
     "docling>=2.0",
     "chonkie[semantic]>=0.3",
     "pyyaml>=6.0",
     # Semi-structured + ontology
+=======
+>>>>>>> c21bc52 (feat(data-eng): implement usf-ingest, usf-worker, usf-audit services + IBM AML pilot)
     "fhir.resources>=7.0",
     "cimpy>=0.3",
     "rdflib>=7.0",
@@ -35,6 +43,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+<<<<<<< HEAD
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
@@ -42,6 +51,9 @@ dev = [
     "ruff",
     "mypy",
 ]
+=======
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "httpx", "ruff", "mypy"]
+>>>>>>> c21bc52 (feat(data-eng): implement usf-ingest, usf-worker, usf-audit services + IBM AML pilot)
 
 [tool.hatch.build.targets.wheel]
 packages = ["usf_ingest"]
@@ -49,6 +61,9 @@ packages = ["usf_ingest"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+<<<<<<< HEAD
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+=======
+>>>>>>> c21bc52 (feat(data-eng): implement usf-ingest, usf-worker, usf-audit services + IBM AML pilot)
