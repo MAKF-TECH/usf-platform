@@ -1,0 +1,369 @@
+version: '3.9'
+
+networks:
+  usf-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  qlever_data:
+  arcadedb_data:
+  valkey_data:
+  redpanda_data:
+  grafana_data:
+
+services:
+
+  # ─── DATABASES ───────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: usf_platform
+      POSTGRES_USER: usf
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-usf_dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init/postgres:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U usf -d usf_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qlever:
+    image: docker.io/adfreiburg/qlever:latest
+    ports:
+      - "7001:7001"
+    volumes:
+      - qlever_data:/data
+      - ./init/qlever:/init
+    command: ["--port", "7001", "--database-dir", "/data"]
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:7001/ping || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  arcadedb:
+    image: arcadedata/arcadedb:latest
+    environment:
+      JAVA_OPTS: "-Darcadedb.server.rootPassword=${ARCADEDB_ROOT_PASSWORD:-usf_dev_password}"
+    ports:
+      - "2480:2480"
+      - "2424:2424"
+    volumes:
+      - arcadedb_data:/home/arcadedb/databases
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:2480/api/v1/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redpanda:
+    image: redpandadata/redpanda:latest
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --smp 1
+      - --memory 512M
+      - --mode dev-container
+    ports:
+      - "19092:19092"
+      - "18082:18082"
+      - "18081:18081"
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ─── SIDECARS ────────────────────────────────────────────────
+
+  opa:
+    image: openpolicyagent/opa:latest-rootless
+    command: ["run", "--server", "--addr", "0.0.0.0:8181", "/policies"]
+    volumes:
+      - ./init/opa/policies:/policies:ro
+    ports:
+      - "8181:8181"
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8181/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  wren-engine:
+    image: ghcr.io/canner/wren-engine:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - WREN_ENGINE_PORT=8080
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ontop:
+    image: ontop/ontop-endpoint:latest
+    ports:
+      - "8090:8080"
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ─── USF SERVICES ────────────────────────────────────────────
+  # NOTE: Several services (api, query, mcp) require packages/ from repo root.
+  # Build context is set to ../../ (repo root) for those services.
+
+  usf-kg:
+    build:
+      context: ../../
+      dockerfile: apps/kg/Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://usf:${POSTGRES_PASSWORD:-usf_dev_password}@postgres:5432/usf_platform
+      - QLEVER_URL=http://qlever:7001
+      - ARCADEDB_URL=http://arcadedb:2480
+      - ARCADEDB_USER=root
+      - ARCADEDB_PASS=${ARCADEDB_ROOT_PASSWORD:-usf_dev_password}
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres: {condition: service_healthy}
+      qlever: {condition: service_healthy}
+      arcadedb: {condition: service_healthy}
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  usf-sdl:
+    build:
+      context: ../../
+      dockerfile: apps/sdl/Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://usf:${POSTGRES_PASSWORD:-usf_dev_password}@postgres:5432/usf_platform
+      - USF_KG_URL=http://usf-kg:8002
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres: {condition: service_healthy}
+      usf-kg: {condition: service_healthy}
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8004/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  usf-query:
+    build:
+      context: ../../
+      dockerfile: apps/query/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - QLEVER_URL=http://qlever:7001
+      - ARCADEDB_URL=http://arcadedb:2480
+      - WREN_ENGINE_URL=http://wren-engine:8080
+      - ONTOP_URL=http://ontop:8090
+      - USF_KG_URL=http://usf-kg:8002
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PORT=8001
+      - LOG_LEVEL=INFO
+    depends_on:
+      usf-kg: {condition: service_healthy}
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  usf-api:
+    build:
+      context: ../../
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://usf:${POSTGRES_PASSWORD:-usf_dev_password}@postgres:5432/usf_platform
+      - VALKEY_URL=redis://valkey:6379/0
+      - OPA_URL=http://opa:8181
+      - USF_QUERY_URL=http://usf-query:8001
+      - USF_KG_URL=http://usf-kg:8002
+      - JWT_SECRET=${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      - JWT_ALGORITHM=HS256
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres: {condition: service_healthy}
+      valkey: {condition: service_healthy}
+      opa: {condition: service_healthy}
+      usf-query: {condition: service_healthy}
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  usf-ingest:
+    build:
+      context: ../../apps/ingest
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://usf:${POSTGRES_PASSWORD:-usf_dev_password}@postgres:5432/usf_platform
+      - VALKEY_URL=redis://valkey:6379/0
+      - REDPANDA_BROKERS=redpanda:9092
+      - USF_KG_URL=http://usf-kg:8002
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres: {condition: service_healthy}
+      valkey: {condition: service_healthy}
+      usf-kg: {condition: service_healthy}
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  usf-mcp:
+    build:
+      context: ../../
+      dockerfile: apps/mcp/Dockerfile
+    ports:
+      - "8005:9000"
+    environment:
+      - USF_API_URL=http://usf-api:8000
+      - USF_QUERY_URL=http://usf-query:8001
+      - LOG_LEVEL=INFO
+    depends_on:
+      usf-api: {condition: service_healthy}
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  usf-audit:
+    build:
+      context: ../../apps/audit
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://usf:${POSTGRES_PASSWORD:-usf_dev_password}@postgres:5432/usf_platform
+      - QLEVER_URL=http://qlever:7001
+      - REDPANDA_BROKERS=redpanda:9092
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres: {condition: service_healthy}
+      qlever: {condition: service_healthy}
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  usf-worker:
+    build:
+      context: ../../apps/worker
+      dockerfile: Dockerfile
+    environment:
+      - VALKEY_URL=redis://valkey:6379/0
+      - USF_KG_URL=http://usf-kg:8002
+      - USF_INGEST_URL=http://usf-ingest:8003
+      - USF_SDL_URL=http://usf-sdl:8004
+      - LOG_LEVEL=INFO
+    depends_on:
+      valkey: {condition: service_healthy}
+      usf-kg: {condition: service_healthy}
+    networks: [usf-network]
+
+  usf-ui:
+    build:
+      context: ../../apps/ui
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"
+    depends_on:
+      usf-api: {condition: service_healthy}
+    networks: [usf-network]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── OBSERVABILITY ───────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks: [usf-network]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on: [prometheus]
+    networks: [usf-network]
+
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    networks: [usf-network]
