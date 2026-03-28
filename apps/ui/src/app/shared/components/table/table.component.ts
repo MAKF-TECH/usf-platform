@@ -141,8 +141,8 @@ export class TableComponent<T extends Record<string, unknown>> {
     const rows = [...this.data()];
     if (!col) return rows;
     return rows.sort((a, b) => {
-      const av = a[col] as string | number | null;
-      const bv = b[col] as string | number | null;
+      const av = (a[col] ?? '') as string | number;
+      const bv = (b[col] ?? '') as string | number;
       if (av === bv) return 0;
       const gt = av > bv ? 1 : -1;
       return dir === 'asc' ? gt : -gt;
