@@ -5,13 +5,13 @@ import {
   signal,
   computed,
 } from '@angular/core';
-import { NgClass, NgTemplateOutlet } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { TableColumn } from './table.types';
 
 @Component({
   selector: 'usf-table',
   standalone: true,
-  imports: [NgClass, NgTemplateOutlet],
+  imports: [NgClass],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="table-wrapper">
@@ -141,8 +141,8 @@ export class TableComponent<T extends Record<string, unknown>> {
     const rows = [...this.data()];
     if (!col) return rows;
     return rows.sort((a, b) => {
-      const av = a[col];
-      const bv = b[col];
+      const av = a[col] as string | number | null;
+      const bv = b[col] as string | number | null;
       if (av === bv) return 0;
       const gt = av > bv ? 1 : -1;
       return dir === 'asc' ? gt : -gt;
