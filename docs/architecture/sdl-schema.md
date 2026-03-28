@@ -108,3 +108,66 @@ metrics:
 
 *See packages/sdl-schema for Pydantic v2 model implementation.*
 *See packages/sdl-schema/usf_sdl/examples/fibo_banking.yaml for complete example.*
+
+---
+
+## Worked Example 1: Banking (FIBO)
+
+See `packages/sdl-schema/usf_sdl/examples/fibo_banking.yaml` for the complete annotated example.
+
+Key patterns:
+- **3 contexts** (`risk`, `finance`, `ops`) — each with different `balance` definitions
+- **Context disambiguation**: querying `balance` without `X-USF-Context` → HTTP 409
+- **Pilot metric**: `total_exposure_by_counterparty` with context-specific SQL filters
+
+```yaml
+entities:
+  - name: BankAccount
+    ontology_class: fibo:Account
+    sql_table: accounts
+    properties:
+      - name: balance
+        ontology_property: fibo:hasBalance
+        type: decimal
+        contexts:
+          risk:    { sql_column: eod_balance }      # Risk: end-of-day balance
+          finance: { sql_column: current_balance }  # Finance: operating balance
+          ops:     { sql_column: realtime_balance } # Ops: real-time balance
+        # ↑ HTTP 409 CONTEXT_AMBIGUOUS without X-USF-Context header
+```
+
+---
+
+## Worked Example 2: Healthcare (HL7 FHIR)
+
+See `packages/sdl-schema/usf_sdl/examples/fhir_healthcare.yaml` for the complete example.
+
+Key patterns:
+- **3 contexts** (`clinical`, `billing`, `research`) with FHIR R4 ontology module
+- **PII enforcement**: `pii: true` triggers column masking in PROV-O
+- **Consent-scoped research**: `row_filter` ensures only consented patients appear in research queries
+- **Context-specific LOS**: `length_of_stay_days` maps to `actual_los_days` (clinical) vs `billed_los_days` (billing)
+
+```yaml
+entities:
+  - name: Encounter
+    ontology_class: fhir:Encounter
+    sql_table: encounters
+    properties:
+      - name: length_of_stay_days
+        ontology_property: fhir:Encounter.length
+        type: integer
+        contexts:
+          clinical: { sql_column: actual_los_days }  # Real admission duration
+          billing:  { sql_column: billed_los_days }  # Billed duration (may differ)
+        # ↑ HTTP 409 CONTEXT_AMBIGUOUS without X-USF-Context header
+
+metrics:
+  - name: active_condition_count_by_icd10
+    type: count
+    contexts:
+      research:
+        filter: "patient_id IN (SELECT patient_id FROM patients WHERE consent_research = true)"
+    access_policy:
+      read: [role:researcher, role:data_scientist]
+      pii: false   # Aggregates only — no patient PII exposed

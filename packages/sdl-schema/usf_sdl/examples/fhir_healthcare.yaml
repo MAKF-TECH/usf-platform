@@ -1,0 +1,202 @@
+# USF Healthcare Pilot — FHIR R4 SDL Example
+sdl_version: "1.0"
+tenant: general-hospital
+ontology_module: fhir
+
+contexts:
+  - name: clinical
+    description: Clinical care context. Active patients and current episodes.
+  - name: billing
+    description: Billing context. Coded diagnoses, procedures, billed LOS.
+  - name: research
+    description: De-identified research context. Aggregates only, consent-filtered.
+
+access_policies:
+  - name: clinician_read
+    description: Treating clinical staff — contains PII
+    read: [role:admin, role:physician, role:nurse, role:clinical_analyst]
+    pii: true
+    clearance: confidential
+  - name: billing_read
+    description: Billing and coding staff
+    read: [role:admin, role:billing_analyst, role:compliance_officer]
+    pii: true
+    clearance: confidential
+  - name: research_read
+    description: Researchers — no PII, aggregates only
+    read: [role:researcher, role:data_scientist, role:admin]
+    pii: false
+    clearance: internal
+    row_filter:
+      role:researcher: "consent_research = true"
+
+entities:
+  - name: Patient
+    ontology_class: fhir:Patient
+    description: A FHIR R4 Patient resource
+    sql_table: patients
+    properties:
+      - name: patient_id
+        ontology_property: fhir:Patient.id
+        sql_column: patient_id
+        type: string
+        nullable: false
+      - name: birth_date
+        ontology_property: fhir:Patient.birthDate
+        sql_column: birth_date
+        type: date
+      - name: gender
+        ontology_property: fhir:Patient.gender
+        sql_column: gender
+        type: string
+        allowed_values: [male, female, other, unknown]
+      - name: consent_research
+        ontology_property: fhir:Consent.status
+        sql_column: consent_research
+        type: boolean
+    access_policy: clinician_read
+
+  - name: Encounter
+    ontology_class: fhir:Encounter
+    description: A clinical encounter — admission, visit, ED episode
+    sql_table: encounters
+    properties:
+      - name: encounter_id
+        ontology_property: fhir:Encounter.id
+        sql_column: encounter_id
+        type: string
+        nullable: false
+      - name: patient_id
+        ontology_property: fhir:Encounter.subject
+        sql_column: patient_id
+        type: string
+        references:
+          entity: Patient
+          property: patient_id
+      - name: encounter_class
+        ontology_property: fhir:Encounter.class
+        sql_column: encounter_class
+        type: string
+        allowed_values: [inpatient, outpatient, emergency, ambulatory, virtual]
+      - name: start_date
+        ontology_property: fhir:Encounter.period.start
+        sql_column: start_date
+        type: datetime
+        nullable: false
+      - name: end_date
+        ontology_property: fhir:Encounter.period.end
+        sql_column: end_date
+        type: datetime
+      - name: length_of_stay_days
+        ontology_property: fhir:Encounter.length
+        type: integer
+        description: Length of stay — actual vs billed (HTTP 409 without X-USF-Context)
+        contexts:
+          clinical:
+            sql_column: actual_los_days
+          billing:
+            sql_column: billed_los_days
+      - name: drg_code
+        ontology_property: fhir:Encounter.diagnosis.use
+        sql_column: drg_code
+        type: string
+    access_policy: clinician_read
+
+  - name: Condition
+    ontology_class: fhir:Condition
+    description: A FHIR Condition — ICD-10 diagnosis
+    sql_table: conditions
+    properties:
+      - name: condition_id
+        ontology_property: fhir:Condition.id
+        sql_column: condition_id
+        type: string
+        nullable: false
+      - name: patient_id
+        ontology_property: fhir:Condition.subject
+        sql_column: patient_id
+        type: string
+        references:
+          entity: Patient
+          property: patient_id
+      - name: icd10_code
+        ontology_property: fhir:Condition.code
+        sql_column: icd10_code
+        type: string
+        nullable: false
+      - name: clinical_status
+        ontology_property: fhir:Condition.clinicalStatus
+        sql_column: clinical_status
+        type: string
+        allowed_values: [active, recurrence, relapse, inactive, remission, resolved]
+      - name: onset_date
+        ontology_property: fhir:Condition.onsetDateTime
+        sql_column: onset_date
+        type: date
+    access_policy: clinician_read
+
+metrics:
+  - name: avg_length_of_stay_by_drg
+    ontology_class: fhir:Encounter
+    description: >
+      Average LOS grouped by DRG code. Actual in clinical context; billed in billing context.
+      HTTP 409 if X-USF-Context not specified.
+    type: avg
+    measure: length_of_stay_days
+    measure_entity: Encounter
+    dimensions:
+      - name: drg_code
+        entity: Encounter
+        property: drg_code
+        ontology_property: fhir:Encounter.diagnosis.use
+      - name: encounter_class
+        entity: Encounter
+        property: encounter_class
+        ontology_property: fhir:Encounter.class
+    contexts:
+      clinical:
+        description: Actual LOS for care quality monitoring
+      billing:
+        description: Billed LOS for reimbursement benchmarking
+    time_grains: [month, quarter, year]
+    time_column: "e.start_date"
+    time_entity: Encounter
+    access_policy:
+      read: [role:physician, role:clinical_analyst, role:billing_analyst, role:admin]
+      pii: false
+      clearance: internal
+    examples:
+      - description: Average LOS by DRG for inpatient encounters Q1 2025
+        parameters:
+          dimensions: [drg_code, encounter_class]
+          filters: {encounter_class: inpatient}
+          time_range: {start: "2025-01-01", end: "2025-03-31", grain: quarter}
+          context: clinical
+
+  - name: active_condition_count_by_icd10
+    ontology_class: fhir:Condition
+    description: Count of active diagnoses grouped by ICD-10 code. Research context is consent-filtered.
+    type: count
+    measure: condition_id
+    measure_entity: Condition
+    dimensions:
+      - name: icd10_code
+        entity: Condition
+        property: icd10_code
+        ontology_property: fhir:Condition.code
+      - name: clinical_status
+        entity: Condition
+        property: clinical_status
+        ontology_property: fhir:Condition.clinicalStatus
+    default_filter: "clinical_status = 'active'"
+    contexts:
+      research:
+        description: Consented de-identified research cohort
+        filter: "patient_id IN (SELECT patient_id FROM patients WHERE consent_research = true)"
+    time_grains: [month, quarter, year]
+    time_column: "c.onset_date"
+    time_entity: Condition
+    access_policy:
+      read: [role:researcher, role:data_scientist, role:clinical_analyst, role:admin]
+      pii: false
+      clearance: internal
