@@ -128,6 +128,23 @@ def _build_prompt(module: str) -> str:
             "Map each extraction to the IEC CIM class. "
             "Use exact text spans — do not paraphrase."
         ),
+        "iec-cim": (
+            "Extract IEC CIM entities from the energy/utility document. "
+            "Focus on: Equipment (GeneratingUnit, PowerTransformer, ACLineSegment, Breaker, Disconnector), "
+            "Measurements (Analog, Discrete, Accumulator), Substations, and EnergyConsumers. "
+            "Include mRID, rated values, voltage levels, and location where present. "
+            "Map each extraction to the IEC CIM 100 class IRI. "
+            "Use exact text spans — do not paraphrase."
+        ),
+        "rami40": (
+            "Extract RAMI 4.0 / AAS (Asset Administration Shell) entities from the manufacturing document. "
+            "Focus on: Assets (physical machines, equipment, systems with serial numbers and AAS IDs), "
+            "Capabilities (from maintenance procedures — what the asset can do, performance limits, test procedures), "
+            "and Submodels. "
+            "Include asset IDs, AAS IDs, manufacturer, model, technical specs, and maintenance references. "
+            "Map each extraction to the AAS 3.0 ontology class. "
+            "Use exact text spans — do not paraphrase."
+        ),
     }
     return prompts.get(
         module,
