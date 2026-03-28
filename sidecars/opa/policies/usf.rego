@@ -1,8 +1,10 @@
 package usf.authz
 
-default allow = false
+import rego.v1
 
-# Allow all by default in dev — tighten with real policies
-allow {
+default allow := false
+
+# Allow all authenticated requests in dev — tighten with real policies
+allow if {
     input.token != ""
 }
