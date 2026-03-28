@@ -13,9 +13,6 @@ volumes:
   valkey_data:
   redpanda_data:
   grafana_data:
-  opa_bundles:
-  ontop_data:
-  wren_data:
   sdl_storage:
   audit_exports:
   pyoxigraph_data:
@@ -132,12 +129,16 @@ services:
   ontop:
     image: ontop/ontop:latest
     container_name: usf-ontop
+    command: >
+      ontop endpoint
+      -m /opt/ontop/input/usf.obda
+      -t /opt/ontop/input/usf.owl
+      -p /opt/ontop/input/usf.properties
+      --port 8080
     environment:
-      ONTOP_PORT: 8080
       JAVA_ARGS: "-Xmx512m"
     volumes:
-      - ontop_data:/opt/ontop/config
-      - ../../sidecars/ontop:/opt/ontop/config:ro
+      - ../../sidecars/ontop:/opt/ontop/input:ro
     ports: ["18080:8080"]
     networks: [usf-network]
     restart: unless-stopped
@@ -149,12 +150,10 @@ services:
       start_period: 45s
 
   opa:
-    image: openpolicyagent/opa:latest-rootless
-    platform: linux/arm64
+    image: openpolicyagent/opa:latest
     container_name: usf-opa
     command: ["run", "--server", "--addr", "0.0.0.0:8181", "--log-format", "json", "/policies"]
     volumes:
-      - opa_bundles:/policies
       - ../../sidecars/opa/policies:/policies:ro
     ports: ["8181:8181"]
     networks: [usf-network]
@@ -169,8 +168,7 @@ services:
     image: ghcr.io/canner/wren-engine:latest
     container_name: usf-wren-engine
     volumes:
-      - wren_data:/var/wren
-      - ../../sidecars/wren:/var/wren:ro
+      - ../../sidecars/wren/etc:/usr/src/app/etc:ro
     ports: ["18090:8080"]
     networks: [usf-network]
     restart: unless-stopped
