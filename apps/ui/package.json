@@ -22,6 +22,7 @@
     "@ngrx/signals": "^21.1.0",
     "echarts": "^6.0.0",
     "ngx-echarts": "^21.0.0",
+    "ngx-monaco-editor-v2": "^21.1.4",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

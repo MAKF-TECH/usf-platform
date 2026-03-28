@@ -8,18 +8,18 @@
   </div>
 
   <div class="editor-layout">
-    <!-- Left: YAML editor -->
+    <!-- Left: Monaco YAML editor -->
     <div class="editor-panel card">
       <div class="panel-header">
         <span class="text-xs text-muted font-semibold">SDL Source (YAML)</span>
         <span class="badge badge-neutral font-mono">risk.sdl.yaml</span>
       </div>
-      <textarea
-        class="sdl-textarea font-mono"
-        [value]="sdlSource()"
-        (input)="sdlSource.set($any($event.target).value)"
-        spellcheck="false"
-      ></textarea>
+      <ngx-monaco-editor
+        class="sdl-monaco-editor"
+        [options]="editorOptions()"
+        [ngModel]="sdlSource()"
+        (ngModelChange)="onSdlChange($event)"
+      />
     </div>
 
     <!-- Right: Preview tabs -->

@@ -1,19 +1,32 @@
 import {
-  Component, ChangeDetectionStrategy, signal, computed
+  Component, ChangeDetectionStrategy, signal, computed, OnDestroy
 } from '@angular/core';
 import { UpperCasePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 
 @Component({
   selector: 'usf-sdl-editor',
   standalone: true,
-  imports: [UpperCasePipe],
+  imports: [UpperCasePipe, FormsModule, MonacoEditorModule],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SdlEditorComponent {
+export class SdlEditorComponent implements OnDestroy {
   activePreviewTab = signal<'owl' | 'sql' | 'r2rml' | 'shacl'>('owl');
   previewTabs: Array<'owl' | 'sql' | 'r2rml' | 'shacl'> = ['owl', 'sql', 'r2rml', 'shacl'];
+
+  editorOptions = signal({
+    theme: 'vs-dark',
+    language: 'yaml',
+    automaticLayout: true,
+    minimap: { enabled: false },
+    fontSize: 14,
+    fontFamily: 'JetBrains Mono, monospace',
+    wordWrap: 'on',
+    scrollBeyondLastLine: false,
+  });
 
   sdlSource = signal(`# USF Semantic Definition Language
 # Tenant: Acme Bank · Context: risk
@@ -132,5 +145,13 @@ usf:CreditExposureShape a sh:NodeShape ;
       case 'r2rml': return this.r2rmlPreview();
       case 'shacl': return this.shaclPreview();
     }
+  }
+
+  onSdlChange(value: string): void {
+    this.sdlSource.set(value);
+  }
+
+  ngOnDestroy(): void {
+    // Monaco editor cleanup is handled by ngx-monaco-editor-v2
   }
 }
