@@ -16,7 +16,18 @@ def _parse_node(value: str):
     return Literal(value)
 
 
-@router.post("", response_model=BulkInsertResponse, status_code=201)
+@router.post(
+    "",
+    response_model=BulkInsertResponse,
+    status_code=201,
+    summary="Bulk insert triples",
+    description="Insert a batch of RDF triples into the specified named graph via QLever SPARQL UPDATE. Subjects and predicates must be valid IRIs. Objects can be IRIs or literals.",
+    responses={
+        201: {"description": "Triples inserted successfully"},
+        502: {"description": "QLever insert failed"},
+    },
+    tags=["triples"],
+)
 async def bulk_insert(request: Request, body: BulkInsertRequest):
     """Insert a batch of triples into the specified named graph."""
     qlever = request.app.state.qlever

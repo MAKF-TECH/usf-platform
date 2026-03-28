@@ -28,7 +28,18 @@ class ResolveLabelResponse(BaseModel):
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
-@router.get("/{entity_iri:path}", response_model=EntityDetail)
+@router.get(
+    "/{entity_iri:path}",
+    response_model=EntityDetail,
+    summary="Get entity details",
+    description="Retrieve full details for an entity by IRI, including all RDF types and properties from the triple store.",
+    responses={
+        200: {"description": "Entity details with properties and types"},
+        404: {"description": "Entity not found"},
+        502: {"description": "QLever query failed"},
+    },
+    tags=["entities"],
+)
 async def get_entity(entity_iri: str, request: Request):
     iri = unquote(entity_iri)
     qlever = request.app.state.qlever
@@ -51,7 +62,19 @@ async def get_entity(entity_iri: str, request: Request):
     return EntityDetail(iri=iri, types=data["types"], properties=properties)
 
 
-@router.post("/resolve", response_model=EntityResolveResponse, status_code=200)
+@router.post(
+    "/resolve",
+    response_model=EntityResolveResponse,
+    status_code=200,
+    summary="Resolve candidate IRIs to canonical IRI",
+    description="Resolve multiple candidate IRIs to a single canonical IRI using Levenshtein distance or owl:sameAs traversal.",
+    responses={
+        200: {"description": "Resolution result with canonical IRI"},
+        400: {"description": "Invalid resolution parameters"},
+        502: {"description": "Backend resolution failed"},
+    },
+    tags=["entities"],
+)
 async def resolve_entity(request: Request, body: EntityResolveRequest):
     """Resolve multiple candidate IRIs to a canonical IRI (levenshtein / owl:sameAs)."""
     resolver = request.app.state.entity_resolver

@@ -20,7 +20,35 @@ from usf_api.services.cache import get_cached, make_query_cache_key, set_cached
 router = APIRouter(prefix="/query", tags=["query"])
 
 
-@router.post("/")
+@router.post(
+    "/",
+    summary="Execute a semantic query",
+    description="""
+Execute a governed semantic query against the USF knowledge graph.
+
+**Query Modes:** Provide one of `question` (NL), `sparql`, `sql`, or `metric`.
+
+**Context Resolution:**
+- If `X-USF-Context` header is set → query scoped to that context's named graph
+- If omitted and metric has ONE context → auto-resolves
+- If omitted and metric has MULTIPLE contexts → returns **409 Conflict** with available options
+
+**ABAC:** Every query is checked against OPA policies before execution.
+Row-level filtering and PII masking are applied automatically.
+
+**PROV-O:** Response includes W3C PROV-O JSON-LD provenance block.
+
+**Caching:** Results are cached in Valkey (L2). Cache hits skip query execution.
+    """,
+    responses={
+        200: {"description": "Query executed successfully with provenance"},
+        403: {"description": "ABAC denied — insufficient role/clearance"},
+        409: {"description": "Context ambiguous — metric defined in multiple contexts"},
+        422: {"description": "Invalid query parameters — must provide question, sparql, sql, or metric"},
+        502: {"description": "Upstream query service error"},
+    },
+    tags=["query"],
+)
 async def run_query(
     req: QueryRequest,
     request: Request,
