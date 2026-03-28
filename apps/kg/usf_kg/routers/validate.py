@@ -40,7 +40,7 @@ async def validate(request: Request, body: ValidateRequest):
         conforms, violations = await shacl_svc.validate_graph(
             data_graph,
             shapes_graph=shapes_graph,
-            quarantine_graph=None if conforms else quarantine_graph,
+            quarantine_graph=quarantine_graph,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

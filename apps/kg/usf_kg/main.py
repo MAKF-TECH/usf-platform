@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from loguru import logger
 
 from .config import settings
@@ -14,7 +14,7 @@ from .services.arcadedb import ArcadeDBClient
 from .services.entity_resolution import EntityResolutionService
 from .services.shacl_service import SHACLService
 
-# ── Logging setup (must happen before anything else) ─────────────────────────
+# ── Logging setup (JSON structured, Loguru) ───────────────────────────────────
 logger.remove()
 logger.add(
     sys.stdout,
@@ -40,7 +40,8 @@ async def lifespan(app: FastAPI):
     await arcadedb.start()
     app.state.arcadedb = arcadedb
 
-    app.state.entity_resolver = EntityResolutionService(qlever)
+    # Pass arcadedb to resolver for vector search + exact IRI lookup
+    app.state.entity_resolver = EntityResolutionService(qlever, arcadedb)
     app.state.shacl_service = SHACLService(qlever)
 
     logger.info("usf-kg started", qlever=settings.qlever_url, arcadedb=settings.arcadedb_url)
@@ -60,10 +61,34 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.get("/health", tags=["health"])
-async def health():
-    return {"status": "ok", "service": settings.service_name}
+async def health(request: Request):
+    """Health check with live connectivity probes for QLever and ArcadeDB."""
+    qlever_status = "unknown"
+    arcadedb_status = "unknown"
+
+    try:
+        qlever: QLeverService = request.app.state.qlever
+        await qlever.client.ask("ASK { ?s ?p ?o }")
+        qlever_status = "connected"
+    except Exception:
+        qlever_status = "error"
+
+    try:
+        arcadedb: ArcadeDBClient = request.app.state.arcadedb
+        await arcadedb.execute_cypher("MATCH (n) RETURN count(n) AS c LIMIT 1")
+        arcadedb_status = "connected"
+    except Exception:
+        arcadedb_status = "error"
+
+    return {
+        "status": "ok",
+        "service": settings.service_name,
+        "qlever": qlever_status,
+        "arcadedb": arcadedb_status,
+    }
 
 
 # ── Routers ───────────────────────────────────────────────────────────────────

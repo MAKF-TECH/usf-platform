@@ -2,29 +2,148 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import dataclass
 from difflib import SequenceMatcher
 from typing import Any
 
 from loguru import logger
+from rdflib import URIRef
 
 from .qlever import QLeverService
+from .arcadedb import ArcadeDBClient
 
 
 def _levenshtein_ratio(a: str, b: str) -> float:
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
 
+def _canonical_iri(tenant_id: str, ontology_class: str, label: str) -> str:
+    """Generate a canonical IRI: usf://{tenant}/entity/{class}/{sha256(label)[:8]}"""
+    slug = hashlib.sha256(label.encode()).hexdigest()[:8]
+    safe_class = ontology_class.split("/")[-1].split("#")[-1]
+    return f"usf://{tenant_id}/entity/{safe_class}/{slug}"
+
+
+@dataclass
+class ResolvedEntity:
+    canonical_iri: str
+    is_new: bool
+    confidence: float
+    same_as_iri: str | None = None  # IRI of matched existing entity (when found via vector)
+
+
 class EntityResolutionService:
     """
-    Match candidate IRIs referring to the same real-world entity,
-    assign a canonical IRI, and insert owl:sameAs triples.
+    Resolve candidate entity labels/IRIs to canonical IRIs.
+
+    Resolution strategy:
+    1. Check exact IRI match in ArcadeDB
+    2. Vector similarity search for near-matches (threshold 0.85)
+    3. If match found: return canonical IRI + write owl:sameAs to QLever provenance graph
+    4. If new: generate canonical IRI, persist in ArcadeDB
     """
 
     OWL_SAME_AS = "http://www.w3.org/2002/07/owl#sameAs"
     PROV_GRAPH = "usf://provenance/entity-resolution"
+    VECTOR_THRESHOLD = 0.85
 
-    def __init__(self, qlever: QLeverService) -> None:
+    def __init__(self, qlever: QLeverService, arcadedb: ArcadeDBClient | None = None) -> None:
         self._qlever = qlever
+        self._arcadedb = arcadedb
+
+    async def resolve_entity(
+        self,
+        candidate_label: str,
+        ontology_class: str,
+        tenant_id: str,
+        embedding: list[float] | None = None,
+    ) -> ResolvedEntity:
+        """
+        Resolve a candidate entity label to a canonical IRI.
+
+        1. If label looks like an IRI, check for exact match in ArcadeDB
+        2. If embedding provided, run vector search (threshold 0.85)
+        3. Write owl:sameAs to QLever provenance graph when match found
+        4. If no match: mint new IRI, persist node in ArcadeDB
+        """
+        # Step 1: exact IRI lookup
+        if self._arcadedb and (
+            candidate_label.startswith("http") or candidate_label.startswith("usf://")
+        ):
+            existing = await self._arcadedb.get_node(candidate_label)
+            if existing:
+                canonical = existing.get("iri", candidate_label)
+                logger.info(
+                    "Entity resolved via exact IRI",
+                    canonical=canonical,
+                    candidate=candidate_label,
+                )
+                return ResolvedEntity(canonical_iri=canonical, is_new=False, confidence=1.0)
+
+        # Step 2: vector similarity search
+        if self._arcadedb and embedding:
+            label_class = ontology_class.split("/")[-1].split("#")[-1]
+            results = await self._arcadedb.vector_search(
+                embedding=embedding,
+                top_k=5,
+                label=label_class,
+            )
+            for row in results:
+                score = float(row.get("score", 0.0))
+                if score >= self.VECTOR_THRESHOLD:
+                    matched_iri = row.get("iri", "")
+                    if not matched_iri:
+                        continue
+                    candidate_iri = _canonical_iri(tenant_id, ontology_class, candidate_label)
+                    await self._write_same_as(candidate_iri, matched_iri)
+                    logger.info(
+                        "Entity resolved via vector search",
+                        canonical=matched_iri,
+                        candidate=candidate_label,
+                        score=score,
+                    )
+                    return ResolvedEntity(
+                        canonical_iri=matched_iri,
+                        is_new=False,
+                        confidence=round(score, 4),
+                        same_as_iri=candidate_iri,
+                    )
+
+        # Step 3: Generate new canonical IRI
+        canonical_iri = _canonical_iri(tenant_id, ontology_class, candidate_label)
+
+        if self._arcadedb:
+            label_class = ontology_class.split("/")[-1].split("#")[-1]
+            await self._arcadedb.upsert_node(
+                label=label_class,
+                iri=canonical_iri,
+                properties={"label": candidate_label, "ontologyClass": ontology_class},
+            )
+
+        logger.info(
+            "New entity created",
+            canonical=canonical_iri,
+            candidate=candidate_label,
+            class_=ontology_class,
+        )
+        return ResolvedEntity(canonical_iri=canonical_iri, is_new=True, confidence=1.0)
+
+    async def _write_same_as(self, from_iri: str, to_iri: str) -> None:
+        """Write owl:sameAs triple to QLever provenance graph."""
+        from usf_rdf.triples import Triple
+        triples = [
+            Triple(
+                subject=URIRef(from_iri),
+                predicate=URIRef(self.OWL_SAME_AS),
+                obj=URIRef(to_iri),
+            )
+        ]
+        try:
+            await self._qlever.insert_triples(self.PROV_GRAPH, triples)
+        except Exception as exc:
+            logger.warning("Failed to write owl:sameAs to QLever", error=str(exc))
+
+    # ── Legacy method: resolve multiple IRIs ─────────────────────────────────
 
     async def resolve(
         self,
@@ -32,20 +151,16 @@ class EntityResolutionService:
         strategy: str = "levenshtein",
     ) -> dict[str, Any]:
         """
-        Compare candidates and return the canonical IRI + confidence.
+        Compare multiple candidate IRIs and return the canonical IRI + confidence.
         Inserts owl:sameAs into QLever if confidence > threshold.
         """
         if len(candidate_iris) < 2:
             raise ValueError("Need at least 2 candidate IRIs to resolve")
 
-        # Simple strategy: pick the IRI that looks most canonical
-        # (shortest, or the one with a namespace we prefer)
         canonical = self._pick_canonical(candidate_iris)
 
         confidence = 1.0
         if strategy == "levenshtein":
-            # For label-based resolution we'd fetch rdfs:label first;
-            # here we use IRI similarity as a proxy
             scores = [
                 _levenshtein_ratio(canonical, iri)
                 for iri in candidate_iris
@@ -60,10 +175,7 @@ class EntityResolutionService:
             confidence=confidence,
         )
 
-        # Insert owl:sameAs triples for all non-canonical IRIs
         from usf_rdf.triples import Triple
-        from rdflib import URIRef
-
         triples = [
             Triple(
                 subject=URIRef(iri),
