@@ -7,6 +7,22 @@ on:
     branches: [main]
 
 jobs:
+  test-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install and test packages
+        run: |
+          pip install -e packages/core -e packages/rdf -e packages/sdl-schema -q
+          pip install pytest pytest-asyncio pyshacl rdflib pydantic -q
+          pytest packages/ -v --tb=short
+
   lint-test-backend:
     runs-on: ubuntu-latest
     strategy:
@@ -21,13 +37,14 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
 
-      - name: Install and test ${{ matrix.service }}
+      - name: Install packages and test ${{ matrix.service }}
         run: |
+          pip install -e packages/core -e packages/rdf -e packages/sdl-schema -q 2>/dev/null || true
+          pip install -e apps/${{ matrix.service }}[dev] -q 2>/dev/null || pip install -e apps/${{ matrix.service }} -q
+          ruff check apps/${{ matrix.service }} || true
+          mypy apps/${{ matrix.service }} --ignore-missing-imports || true
           cd apps/${{ matrix.service }}
-          pip install -e ".[dev]" -q 2>/dev/null || pip install -e . -q
-          ruff check . || true
-          mypy . --ignore-missing-imports || true
-          pytest -q --tb=short || true
+          pytest tests/ -v --tb=short || true
 
   build-frontend:
     runs-on: ubuntu-latest
