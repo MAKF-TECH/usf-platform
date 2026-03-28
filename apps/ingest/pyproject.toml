@@ -32,6 +32,9 @@ dependencies = [
     "pydantic-settings>=2.0",
     "alembic>=1.13",
     "python-multipart>=0.0.9",
+    "usf-core",
+    "usf-rdf",
+    "usf-sdl-schema",
 ]
 
 [project.optional-dependencies]
@@ -45,6 +48,9 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["usf_ingest"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.ruff]
 line-length = 100

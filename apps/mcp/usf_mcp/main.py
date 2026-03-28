@@ -115,3 +115,23 @@ async def usf_list_contexts() -> list[dict[str, Any]]:
 if __name__ == "__main__":
     from usf_mcp.config import settings
     mcp.run(transport="streamable-http", host="0.0.0.0", port=settings.mcp_port)
+
+# ── OpenTelemetry instrumentation ─────────────────────────────────────────────
+import os as _os
+
+def _configure_telemetry(service_name: str):
+    from opentelemetry import trace
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    provider = TracerProvider()
+    otlp_endpoint = _os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+    if otlp_endpoint:
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+        provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint)))
+    trace.set_tracer_provider(provider)
+    return trace.get_tracer(service_name)
+
+try:
+    _configure_telemetry("usf-mcp")
+except ImportError:
+    pass

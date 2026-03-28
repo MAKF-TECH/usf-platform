@@ -13,7 +13,16 @@ from usf_api.routers.auth import get_current_user
 router = APIRouter(prefix="/contexts", tags=["contexts"])
 
 
-@router.get("/")
+@router.get(
+    "/",
+    summary="List available semantic contexts",
+    description="Return all semantic contexts available for the authenticated tenant. Contexts scope queries to specific named graphs in the knowledge graph.",
+    responses={
+        200: {"description": "List of contexts"},
+        502: {"description": "KG service unavailable"},
+    },
+    tags=["contexts"],
+)
 async def list_contexts(
     request: Request,
     claims: Annotated[dict, Depends(get_current_user)],

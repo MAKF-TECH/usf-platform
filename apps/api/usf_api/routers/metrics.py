@@ -16,7 +16,17 @@ from usf_api.services.cache import get_cached, make_metrics_cache_key, set_cache
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 
-@router.get("/")
+@router.get(
+    "/",
+    summary="List available metrics",
+    description="List all available semantic metrics for the authenticated tenant. Results are filtered by ABAC policy and optionally scoped by context via `X-USF-Context` header. Responses are cached.",
+    responses={
+        200: {"description": "List of available metrics"},
+        403: {"description": "ABAC denied — insufficient permissions"},
+        502: {"description": "KG service unavailable"},
+    },
+    tags=["metrics"],
+)
 async def list_metrics(
     request: Request,
     claims: Annotated[dict, Depends(get_current_user)],
@@ -57,7 +67,19 @@ async def list_metrics(
     return result
 
 
-@router.get("/{name}")
+@router.get(
+    "/{name}",
+    summary="Get metric definition and lineage",
+    description="Retrieve a specific metric definition including ontology mapping, SQL/SPARQL templates, available contexts, and data lineage. Subject to ABAC and context resolution.",
+    responses={
+        200: {"description": "Metric definition with lineage"},
+        403: {"description": "ABAC denied"},
+        404: {"description": "Metric not found"},
+        409: {"description": "Context ambiguous for this metric"},
+        502: {"description": "Query service unavailable"},
+    },
+    tags=["metrics"],
+)
 async def get_metric(
     name: str,
     request: Request,

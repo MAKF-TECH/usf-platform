@@ -20,12 +20,16 @@ dependencies = [
     "owlrl>=6.0",
     "sqlglot>=25.0",
     "pyyaml>=6.0",
-    "usf-rdf @ file:///${PROJECT_ROOT}/../../packages/rdf",
-    "usf-core @ file:///${PROJECT_ROOT}/../../packages/core",
+    "usf-core",
+    "usf-rdf",
+    "usf-sdl-schema",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff", "mypy"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["usf_sdl_svc"]
+
+[tool.hatch.metadata]
+allow-direct-references = true

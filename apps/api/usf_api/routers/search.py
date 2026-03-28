@@ -14,7 +14,17 @@ from usf_api.routers.auth import get_current_user
 router = APIRouter(prefix="/entities", tags=["entities"])
 
 
-@router.get("/search")
+@router.get(
+    "/search",
+    summary="Search knowledge graph entities",
+    description="Full-text and semantic entity search forwarded to the USF Knowledge Graph service. Supports filtering by entity type and context. Subject to ABAC.",
+    responses={
+        200: {"description": "Search results"},
+        403: {"description": "ABAC denied"},
+        502: {"description": "KG service unavailable"},
+    },
+    tags=["entities"],
+)
 async def search_entities(
     request: Request,
     claims: Annotated[dict, Depends(get_current_user)],

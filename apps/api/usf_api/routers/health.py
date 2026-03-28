@@ -7,7 +7,12 @@ from usf_api.config import settings
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health")
+@router.get(
+    "/health",
+    summary="Service health check",
+    description="Returns the health status of the API gateway, including cache connectivity.",
+    tags=["health"],
+)
 async def health(request: Request) -> dict:
     cache_ok = False
     try:

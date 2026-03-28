@@ -47,4 +47,22 @@ export class ExplorerComponent {
     'prov:wasAttributedTo': 'agent:docling-v2.1',
     'prov:generatedAtTime': '2024-01-15T10:23:14Z',
   });
+
+  exploreNeighbors(): void {
+    const iri = this.selectedIri();
+    if (!iri) return;
+    const neighborIris = new Set<string>();
+    neighborIris.add(iri);
+    for (const e of this.mock.kgEdges) {
+      if (e.subject === iri) neighborIris.add(e.object);
+      if (e.object === iri) neighborIris.add(e.subject);
+    }
+    this.nodes.set(this.mock.kgNodes.filter(n => neighborIris.has(n.iri)));
+    this.edges.set(this.mock.kgEdges.filter(e => neighborIris.has(e.subject) && neighborIris.has(e.object)));
+  }
+
+  resetGraph(): void {
+    this.nodes.set(this.mock.kgNodes);
+    this.edges.set(this.mock.kgEdges);
+  }
 }
