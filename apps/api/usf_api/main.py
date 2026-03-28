@@ -11,6 +11,8 @@ from sqlmodel import SQLModel
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from usf_api.config import settings
+from usf_api.middleware.security_headers import SecurityHeadersMiddleware
+from usf_api.middleware.rate_limit import RateLimitMiddleware
 from usf_api.routers import auth, contexts, health, metrics, query, search
 
 
@@ -52,6 +54,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
 
 app.include_router(health.router)
 app.include_router(auth.router)

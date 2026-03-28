@@ -1,0 +1,54 @@
+# SPARQL Query: AML Suspicious Transaction Detection
+# Pilot Demo Step 6 (SPARQL variant)
+#
+# Returns: suspicious transactions above threshold in target currencies
+# Use case: AML monitoring dashboard — high-value suspicious activity
+#
+# FIBO mapping:
+#   usf:isSuspicious → aml:isSuspicious  (USF AML extension)
+#   usf:amount       → fibo:hasMonetaryAmount
+#   usf:fromBank     → fibo:CommercialBank
+#   usf:toBank       → fibo:CommercialBank
+
+PREFIX usf: <https://usf.makf.tech/ontology/>
+PREFIX fibo-fbc: <https://spec.edmcouncil.org/fibo/ontology/FBC/FunctionalEntities/FinancialInstitutions/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT
+  ?transactionId
+  ?timestamp
+  ?fromBankName
+  ?fromAccount
+  ?toBankName
+  ?toAccount
+  ?amount
+  ?currency
+  ?paymentFormat
+WHERE {
+  ?tx a usf:FinancialTransaction ;
+      usf:transactionId ?transactionId ;
+      usf:timestamp ?timestamp ;
+      usf:fromAccount ?fromAccount ;
+      usf:toAccount ?toAccount ;
+      usf:amount ?amount ;
+      usf:currency ?currency ;
+      usf:isSuspicious true .
+
+  OPTIONAL {
+    ?tx usf:fromBank ?fromBank .
+    ?fromBank usf:legalName ?fromBankName .
+  }
+  OPTIONAL {
+    ?tx usf:toBank ?toBank .
+    ?toBank usf:legalName ?toBankName .
+  }
+  OPTIONAL {
+    ?tx usf:paymentFormat ?paymentFormat .
+  }
+
+  # Filter: EUR transactions above 100,000
+  FILTER(?currency = "EUR")
+  FILTER(?amount > 100000)
+}
+ORDER BY DESC(?amount) ?timestamp
+LIMIT 100

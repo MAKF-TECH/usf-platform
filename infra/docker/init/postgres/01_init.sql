@@ -55,3 +55,13 @@ CREATE RULE audit_log_no_delete AS ON DELETE TO audit_log DO INSTEAD NOTHING;
 INSERT INTO tenants (name, slug, industry, ontology_module, kg_namespace, plan)
 VALUES ('Acme Bank (Demo)', 'acme-bank', 'banking', 'fibo', 'usf://acme-bank/', 'pilot')
 ON CONFLICT DO NOTHING;
+
+-- ─── ACCESS CONTROL ──────────────────────────────────────────
+-- Grant only INSERT + SELECT on audit_log (not UPDATE/DELETE)
+GRANT SELECT, INSERT ON audit_log TO usf_app;
+REVOKE UPDATE, DELETE ON audit_log FROM PUBLIC;
+
+-- usf_app role gets standard table access (not superuser)
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO usf_app;
+REVOKE UPDATE, DELETE ON audit_log FROM usf_app;
+GRANT SELECT, INSERT ON audit_log TO usf_app;

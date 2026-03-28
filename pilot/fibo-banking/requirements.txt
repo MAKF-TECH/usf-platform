@@ -1,0 +1,28 @@
+# USF FIBO Banking Pilot — Standalone Requirements
+# Use this to run pilot scripts without the full Docker stack.
+#
+# Install: pip install -r pilot/fibo-banking/requirements.txt
+
+# HTTP client (API calls to usf-ingest, QLever, Wren Engine)
+requests>=2.31
+
+# Data processing
+pandas>=2.0
+
+# RDF / ontology
+rdflib>=7.0
+
+# SHACL validation
+pyshacl>=0.25
+
+# YAML parsing (SDL files)
+pyyaml>=6.0
+
+# dlt pipeline (CSV → PostgreSQL staging)
+dlt>=1.0
+
+# Logging
+loguru>=0.7
+
+# Optional: Kaggle dataset download
+# kaggle>=1.6
