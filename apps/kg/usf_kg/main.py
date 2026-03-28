@@ -14,7 +14,7 @@ from .services.arcadedb import ArcadeDBClient
 from .services.entity_resolution import EntityResolutionService
 from .services.shacl_service import SHACLService
 
-# ── Logging setup (must happen before anything else) ─────────────────────────
+# ── Logging setup (JSON structured, Loguru) ───────────────────────────────────
 logger.remove()
 logger.add(
     sys.stdout,
@@ -59,6 +59,7 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
 
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.get("/health", tags=["health"])

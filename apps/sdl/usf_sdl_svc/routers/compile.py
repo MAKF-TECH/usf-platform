@@ -116,6 +116,7 @@ async def compile_sdl(body: CompileRequest):
 
     # SKOS alignments
     skos = _aligner.generate_skos_mappings(sdl)
+    prov_template = _build_prov_template(sdl, body.namespace)
 
     # PROV-O template
     prov_template = _build_prov_template(sdl, body.namespace)
