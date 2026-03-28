@@ -425,3 +425,25 @@ services:
       valkey: {condition: service_healthy}
     profiles: [monitoring]
     restart: unless-stopped
+
+  # --- Observability: Loki + Promtail ---
+  loki:
+    image: grafana/loki:latest
+    container_name: usf-loki
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+    ports: ["3100:3100"]
+    networks: [usf-network]
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: usf-promtail
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks: [usf-network]
+    depends_on: [loki]
+    restart: unless-stopped
