@@ -44,3 +44,25 @@ app.include_router(compile.router)
 app.include_router(versions.router)
 app.include_router(diff.router)
 app.include_router(ontology.router)
+
+# ── OpenTelemetry instrumentation ─────────────────────────────────────────────
+import os as _os
+
+def _configure_telemetry(service_name: str):
+    from opentelemetry import trace
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    provider = TracerProvider()
+    otlp_endpoint = _os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+    if otlp_endpoint:
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+        provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint)))
+    trace.set_tracer_provider(provider)
+    return trace.get_tracer(service_name)
+
+try:
+    _configure_telemetry("usf-sdl")
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    FastAPIInstrumentor.instrument_app(app)
+except ImportError:
+    pass

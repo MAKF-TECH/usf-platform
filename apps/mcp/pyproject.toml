@@ -11,6 +11,8 @@ dependencies = [
     "fastmcp>=0.9",
     "httpx>=0.27",
     "loguru>=0.7",
+    "opentelemetry-sdk>=1.25",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.25",
     "pydantic>=2.7",
     "pydantic-settings>=2.0",
     "usf-core",
@@ -21,3 +23,11 @@ packages = ["usf_mcp"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "pytest-cov>=4.0",
+]

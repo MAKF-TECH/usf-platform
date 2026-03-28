@@ -23,6 +23,8 @@ dependencies = [
     "aiokafka>=0.11",
     "openlineage-python>=1.0",
     "opentelemetry-sdk>=1.25",
+    "opentelemetry-instrumentation-fastapi>=0.46b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.25",
     "openai>=1.30",
     "fhir.resources>=7.0",
     "cimpy>=0.3",
@@ -36,6 +38,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "pytest-cov>=4.0",
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "httpx",
