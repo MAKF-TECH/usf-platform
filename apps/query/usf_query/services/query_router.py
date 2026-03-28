@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from loguru import logger
@@ -15,6 +16,73 @@ _qlever = QLeverClient()
 _arcadedb = ArcadeDBClient()
 _wren = WrenClient()
 _ontop = OntopClient()
+
+
+# ── Routing heuristics ──────────────────────────────────────────────────────
+
+def _traversal_depth(sparql: str) -> int:
+    """Estimate max graph traversal depth from SPARQL property paths."""
+    if re.search(r"[/:][*+]", sparql):
+        return 99  # unbounded
+    paths = re.findall(r"\w+:\w+(?:/\w+:\w+)+", sparql)
+    if paths:
+        return max(len(p.split("/")) for p in paths)
+    if any(kw in sparql.lower() for kw in ["traverse", "shortestpath", "allshortestpaths"]):
+        return 3
+    return 1
+
+
+def _needs_vector_search(query: str) -> bool:
+    markers = ["similar to", "semantically", "nearest", "embedding",
+               "vectorindex", "cosine", "vector_distance"]
+    return any(m in query.lower() for m in markers)
+
+
+def _needs_owl_inference(sparql: str) -> bool:
+    owl_markers = [
+        "owl:class", "owl:objectproperty", "rdfs:subclassof",
+        "rdfs:domain", "rdfs:range", "rdfs:subpropertyof",
+        "owl:equivalentclass", "owl:restriction",
+    ]
+    lower = sparql.lower()
+    return any(m in lower for m in owl_markers)
+
+
+class QueryRouter:
+    """
+    Route semantic queries to the appropriate backend engine.
+
+    Routing priority (highest to lowest):
+    1. Virtual KG (R2RML) → ONTOP
+    2. SQL metric query → WREN
+    3. Vector similarity → ARCADEDB (vector index)
+    4. Graph traversal depth > 2 → ARCADEDB (Cypher)
+    5. OWL inference needed → QLEVER
+    6. Default → QLEVER
+    """
+
+    def route(self, query: SemanticQuery) -> QueryBackend:
+        q = query.query
+
+        if query.query_type == QueryType.SQL:
+            return QueryBackend.WREN
+
+        if query.query_type == QueryType.SPARQL:
+            if _needs_r2rml_mapping(q):
+                return QueryBackend.ONTOP
+            if _needs_vector_search(q):
+                return QueryBackend.ARCADEDB
+            if _traversal_depth(q) > 2:
+                return QueryBackend.ARCADEDB
+            if _needs_owl_inference(q):
+                return QueryBackend.QLEVER
+            return QueryBackend.QLEVER
+
+        return QueryBackend.QLEVER
+
+
+# Module-level router singleton
+_router = QueryRouter()
 
 
 def _is_graph_query(sparql: str) -> bool:

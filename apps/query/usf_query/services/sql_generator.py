@@ -141,3 +141,75 @@ def _time_grain_expr(grain: str, dialect: str) -> str | None:
         return f"DATE_TRUNC(event_date, {trunc_map.get(grain_lower, grain_lower.upper())}) AS period"
     else:  # postgres
         return f"DATE_TRUNC('{grain_lower}', event_date) AS period"
+
+
+def compile_metric_sql(
+    metric_name: str,
+    dimensions: list[str],
+    filters: dict,
+    time_range: dict,
+    context: str,
+    dialect: str = "postgres",
+) -> str:
+    """
+    Public API: compile metric_name + dimensions + filters + time_range to SQL.
+
+    Delegates to generate_metric_sql with a synthetic metric dict.
+    Handles time range as WHERE date range conditions.
+
+    Returns:
+        Transpiled SQL string ready for the target warehouse.
+    """
+    time_grain = (time_range or {}).get("grain")
+    simple_filters: dict = {}
+    range_parts: list[str] = []
+
+    for k, v in (filters or {}).items():
+        simple_filters[k] = v
+
+    if time_range:
+        if time_range.get("start"):
+            range_parts.append(f"event_date >= '{time_range['start']}'")
+        if time_range.get("end"):
+            range_parts.append(f"event_date <= '{time_range['end']}'")
+
+    metric_dict: dict = {
+        "name": metric_name,
+        "type": "sum",
+        "measure": metric_name,
+        "dimensions": dimensions,
+        "table": f"{context}_{metric_name}_facts",
+        "contexts": {
+            context: {"table": f"{context}_{metric_name}_facts"}
+        },
+    }
+    if time_grain:
+        metric_dict["time_grains"] = [time_grain]
+
+    sql = generate_metric_sql(
+        metric=metric_dict,
+        context=context,
+        dialect=dialect,
+        dimensions=dimensions,
+        filters=simple_filters,
+        time_grain=time_grain,
+    )
+
+    if range_parts:
+        extra_where = " AND ".join(range_parts)
+        upper = sql.upper()
+        grp_idx = upper.find("\nGROUP BY")
+        insert_at = grp_idx if grp_idx != -1 else len(sql)
+        if "WHERE" in upper:
+            sql = sql[:insert_at] + f"\n  AND {extra_where}" + sql[insert_at:]
+        else:
+            sql = sql[:insert_at] + f"\nWHERE {extra_where}" + sql[insert_at:]
+
+    logger.info(
+        "compile_metric_sql",
+        metric=metric_name,
+        context=context,
+        dialect=dialect,
+        dimensions=dimensions,
+    )
+    return sql
