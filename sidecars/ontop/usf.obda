@@ -1,11 +1,11 @@
-[prefixes]
- :=http://usf.io/ontology/
- owl:=http://www.w3.org/2002/07/owl#
- rdf:=http://www.w3.org/1999/02/22-rdf-syntax-ns#
- xsd:=http://www.w3.org/2001/XMLSchema#
+[PrefixDeclaration]
+:		http://usf.io/ontology/
+owl:	http://www.w3.org/2002/07/owl#
+rdf:	http://www.w3.org/1999/02/22-rdf-syntax-ns#
+xsd:	http://www.w3.org/2001/XMLSchema#
 
 [MappingDeclaration] @collection [[
 mappingId	stub
 target		:stub a owl:Thing .
-source		SELECT 1 AS stub
+source		SELECT 1 AS dummy
 ]]
