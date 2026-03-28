@@ -1,0 +1,45 @@
+# SPARQL Query: Connected Accounts Graph Traversal
+# Pilot Demo Step 5 — Graph path via QLever/ArcadeDB
+#
+# Returns: all accounts connected (directly or transitively) to suspicious transactions
+# Use case: AML network analysis — find exposure clusters
+#
+# FIBO mapping:
+#   usf:fromAccount / usf:toAccount → fibo-fbc-ps:Account
+#   usf:isSuspicious                → aml:isSuspicious
+
+PREFIX usf: <https://usf.makf.tech/ontology/>
+PREFIX fibo-fbc: <https://spec.edmcouncil.org/fibo/ontology/FBC/ProductsAndServices/FinancialProductsAndServices/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+# Direct connections: accounts that sent or received from a suspicious account
+SELECT DISTINCT
+  ?sourceAccount
+  ?connectedAccount
+  ?connectionType
+  (COUNT(?tx) AS ?suspiciousTransactionCount)
+  (SUM(?amount) AS ?totalSuspiciousAmount)
+WHERE {
+  {
+    # Outbound: account sent money to a suspicious destination
+    ?tx a usf:FinancialTransaction ;
+        usf:fromAccount ?sourceAccount ;
+        usf:toAccount ?connectedAccount ;
+        usf:isSuspicious true ;
+        usf:amount ?amount .
+    BIND("outbound" AS ?connectionType)
+  }
+  UNION
+  {
+    # Inbound: account received money from a suspicious source
+    ?tx a usf:FinancialTransaction ;
+        usf:fromAccount ?connectedAccount ;
+        usf:toAccount ?sourceAccount ;
+        usf:isSuspicious true ;
+        usf:amount ?amount .
+    BIND("inbound" AS ?connectionType)
+  }
+}
+GROUP BY ?sourceAccount ?connectedAccount ?connectionType
+ORDER BY DESC(?suspiciousTransactionCount)
+LIMIT 50

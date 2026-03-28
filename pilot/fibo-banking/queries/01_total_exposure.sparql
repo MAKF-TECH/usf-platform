@@ -1,0 +1,36 @@
+# SPARQL Query: Total Exposure by Counterparty
+# Pilot Demo Step 4 — SQL/SPARQL path via Wren Engine + QLever
+#
+# Returns: counterparty bank name, jurisdiction, total exposure, transaction count
+# Ordered by: total exposure descending
+#
+# FIBO mapping:
+#   usf:fromBank → fibo-be-le:LegalEntity (CommercialBank)
+#   usf:amount   → fibo:hasMonetaryAmount
+
+PREFIX usf: <https://usf.makf.tech/ontology/>
+PREFIX fibo-fbc: <https://spec.edmcouncil.org/fibo/ontology/FBC/FunctionalEntities/FinancialInstitutions/>
+PREFIX fibo-be: <https://spec.edmcouncil.org/fibo/ontology/BE/LegalEntities/LegalPersons/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT
+  ?bankName
+  ?jurisdiction
+  (SUM(?amount) AS ?totalExposure)
+  (COUNT(?tx) AS ?transactionCount)
+  (AVG(?amount) AS ?avgTransactionSize)
+WHERE {
+  ?tx a usf:FinancialTransaction ;
+      usf:fromBank ?bank ;
+      usf:amount ?amount ;
+      usf:currency ?currency .
+
+  ?bank a fibo-fbc:CommercialBank ;
+        usf:legalName ?bankName ;
+        usf:jurisdiction ?jurisdiction .
+
+  FILTER(?currency = "EUR")
+}
+GROUP BY ?bankName ?jurisdiction
+ORDER BY DESC(?totalExposure)
+LIMIT 20

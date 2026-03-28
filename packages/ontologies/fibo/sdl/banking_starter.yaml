@@ -148,3 +148,193 @@ metrics:
         WHERE a.status = 'active' AND b.sector IN ('retail','investment')
         GROUP BY b.legal_name, b.jurisdiction
         ORDER BY total_exposure DESC
+
+  # BankAccount — alias for Account, emphasises the FIBO-FBC class
+  - name: BankAccount
+    description: "A bank account held at a commercial bank (FIBO-FBC-PS Account)"
+    fibo_class: "https://spec.edmcouncil.org/fibo/ontology/FBC/ProductsAndServices/FinancialProductsAndServices/Account"
+    alias_of: Account
+    fibo_prefix: "fibo-fbc-ps"
+    fields:
+      - name: accountId
+        type: string
+        required: true
+        fibo_property: "https://usf.makf.tech/ontology/accountId"
+      - name: balance
+        type: decimal
+        description: "Current account balance"
+        fibo_property: "https://usf.makf.tech/ontology/balance"
+        context_visibility:
+          - context: risk
+            clearance: internal
+            description: "Risk view: balance used for exposure calculations"
+          - context: finance
+            clearance: internal
+            description: "Finance view: balance used for P&L reporting"
+
+  # CommercialBank — explicit alias referencing the fibo-be-le Legal Entity
+  - name: CommercialBank
+    description: "A commercial bank as a Legal Entity (fibo-be-le)"
+    fibo_class: "https://spec.edmcouncil.org/fibo/ontology/BE/LegalEntities/LegalPersons/LegalEntity"
+    fibo_prefix: "fibo-be-le"
+    also_a:
+      - "https://spec.edmcouncil.org/fibo/ontology/FBC/FunctionalEntities/FinancialInstitutions/CommercialBank"
+    fields:
+      - name: legalName
+        type: string
+        required: true
+        fibo_property: "https://usf.makf.tech/ontology/legalName"
+      - name: lei
+        type: string
+        pattern: "^[A-Z0-9]{20}$"
+        fibo_property: "https://usf.makf.tech/ontology/lei"
+      - name: jurisdiction
+        type: string
+        pattern: "^[A-Z]{2}$"
+        fibo_property: "https://usf.makf.tech/ontology/jurisdiction"
+
+  # FinancialTransaction — maps to FIBO monetary transaction
+  - name: FinancialTransaction
+    description: "A financial transaction between two parties (FIBO)"
+    fibo_class: "https://spec.edmcouncil.org/fibo/ontology/FND/Transactions/REATransactions/Transaction"
+    fibo_prefix: "fibo-fnd-txn"
+    fields:
+      - name: transactionId
+        type: string
+        required: true
+        fibo_property: "https://usf.makf.tech/ontology/transactionId"
+      - name: amount
+        type: decimal
+        required: true
+        description: "Transaction amount"
+        fibo_property: "https://spec.edmcouncil.org/fibo/ontology/FND/Accounting/AccountingEquity/hasMonetaryAmount"
+        fibo_shortname: "fibo:hasMonetaryAmount"
+      - name: currency
+        type: string
+        required: true
+        pattern: "^[A-Z]{3}$"
+        fibo_property: "https://usf.makf.tech/ontology/currency"
+      - name: fromBank
+        type: ref(CommercialBank)
+        fibo_property: "https://usf.makf.tech/ontology/fromBank"
+      - name: toBank
+        type: ref(CommercialBank)
+        fibo_property: "https://usf.makf.tech/ontology/toBank"
+      - name: fromAccount
+        type: ref(BankAccount)
+        fibo_property: "https://usf.makf.tech/ontology/fromAccount"
+      - name: toAccount
+        type: ref(BankAccount)
+        fibo_property: "https://usf.makf.tech/ontology/toAccount"
+      - name: isSuspicious
+        type: boolean
+        description: "AML suspicious activity flag"
+        fibo_property: "https://usf.makf.tech/ontology/isSuspicious"
+        context_visibility:
+          - context: aml
+            clearance: restricted
+
+# ── Additional metrics ─────────────────────────────────────────────────────────
+
+  # total_exposure_by_counterparty: same metric, 2 context filters → triggers 409 when no context
+  - name: total_exposure_by_counterparty
+    description: >
+      Total financial exposure grouped by counterparty bank.
+      Exists in BOTH risk and finance contexts with different filters —
+      querying without context triggers 409 disambiguation.
+    entity: FinancialTransaction
+    aggregation: SUM
+    field: amount
+    group_by:
+      - fromBank.legalName
+      - fromBank.jurisdiction
+    context_definitions:
+      - context: risk
+        description: "Risk view: all active counterparties, exposure threshold monitoring"
+        filters:
+          - field: fromBank.sector
+            operator: IN
+            value: [retail, investment, islamic]
+          - field: amount
+            operator: ">"
+            value: 0
+        access_policy: risk_analyst
+      - context: finance
+        description: "Finance view: only settled transactions for P&L"
+        filters:
+          - field: currency
+            operator: "="
+            value: EUR
+          - field: isSuspicious
+            operator: "="
+            value: false
+        access_policy: finance_analyst
+    sql_hint:
+      postgres: |
+        -- RISK context
+        SELECT from_bank, SUM(amount) AS total_exposure, COUNT(*) AS txn_count
+        FROM staging_fibo_banking.aml_transactions
+        GROUP BY from_bank
+        ORDER BY total_exposure DESC;
+
+  # balance: 2 contexts → triggers 409 disambiguation demo
+  - name: balance
+    description: >
+      Account balance metric. Defined in both risk and finance contexts.
+      Querying without ?context triggers 409 with available contexts listed.
+    entity: BankAccount
+    aggregation: LATEST
+    field: balance
+    context_definitions:
+      - context: risk
+        description: "Risk context: balance for counterparty exposure assessment"
+        filters:
+          - field: status
+            operator: IN
+            value: [active, frozen]
+        access_policy: risk_analyst
+      - context: finance
+        description: "Finance context: balance for P&L and regulatory reporting"
+        filters:
+          - field: status
+            operator: "="
+            value: active
+          - field: accountType
+            operator: IN
+            value: [checking, savings, loan]
+        access_policy: finance_analyst
+
+# ── Access policies ────────────────────────────────────────────────────────────
+
+access_policies:
+  - name: risk_analyst
+    description: "Risk management team — read access to risk context metrics"
+    roles: [risk_analyst, risk_manager, aml_officer]
+    permissions:
+      - action: read
+        context: risk
+        entities: [BankAccount, CommercialBank, FinancialTransaction]
+        metrics: [total_exposure_by_counterparty, balance]
+      - action: read
+        context: aml
+        entities: [FinancialTransaction]
+        fields: [isSuspicious]
+
+  - name: finance_analyst
+    description: "Finance team — read access to finance context metrics"
+    roles: [finance_analyst, finance_manager, controller]
+    permissions:
+      - action: read
+        context: finance
+        entities: [BankAccount, CommercialBank, FinancialTransaction]
+        metrics: [total_exposure_by_counterparty, balance]
+
+  - name: aml_compliance
+    description: "AML compliance officers — read access to AML context"
+    roles: [aml_officer, compliance_manager, auditor]
+    permissions:
+      - action: read
+        context: aml
+        entities: [FinancialTransaction]
+        fields: [isSuspicious, transactionId, amount, currency, fromBank, toBank]
+

@@ -1,0 +1,61 @@
+# NL2SPARQL Demo Questions
+# Pilot Demo Step 6 — Natural Language → SPARQL via USF NL layer
+#
+# These questions are sent to POST /query/nl and converted to SPARQL automatically.
+# Each question tests a different aspect of the FIBO banking ontology.
+
+QUESTION_1:
+Show suspicious transactions in EUR greater than 100000
+
+Expected SPARQL path: /query/nl → NL2SPARQL → 03_suspicious_transactions.sparql (variant)
+Expected FIBO mapping: usf:isSuspicious=true, usf:currency=EUR, usf:amount>100000
+Expected context: aml
+Expected result: List of high-value AML-flagged transactions
+
+
+QUESTION_2:
+What is the total exposure of Deutsche Bank counterparties?
+
+Expected SPARQL path: /query/nl → NL2SPARQL → 01_total_exposure.sparql (variant)
+Expected FIBO mapping: usf:fromBank.legalName = "Deutsche Bank", SUM(usf:amount)
+Expected context: risk
+Expected result: Single row with totalExposure aggregate
+
+
+QUESTION_3:
+Which accounts received money from accounts involved in money laundering?
+
+Expected SPARQL path: /query/nl → NL2SPARQL → 02_connected_accounts.sparql (variant)
+Expected FIBO mapping: usf:isSuspicious=true, graph traversal on usf:fromAccount/usf:toAccount
+Expected context: aml
+Expected result: List of connected accounts with suspicious transaction counts
+
+
+# ── Disambiguation test ────────────────────────────────────────────────────────
+
+DISAMBIGUATION_QUESTION:
+What is the balance?
+
+Expected behavior:
+  → USF detects 'balance' metric exists in 2 contexts: risk AND finance
+  → Returns HTTP 409 Conflict
+  → Response body lists available contexts with descriptions
+  → User must re-query with ?context=risk or ?context=finance
+
+Expected 409 response:
+{
+  "error": "disambiguation_required",
+  "metric": "balance",
+  "available_contexts": [
+    {
+      "id": "risk",
+      "description": "Risk management team — exposure, counterparty risk",
+      "example": "GET /query/metric/balance?context=risk"
+    },
+    {
+      "id": "finance",
+      "description": "Finance team — P&L, balances, regulatory reporting",
+      "example": "GET /query/metric/balance?context=finance"
+    }
+  ]
+}
