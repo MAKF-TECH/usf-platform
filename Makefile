@@ -1,4 +1,4 @@
-.PHONY: up down build logs shell test lint health pilot-data
+.PHONY: up down build logs shell test lint health pilot-data generate-keys clean format
 
 DOCKER_DIR=infra/docker
 
@@ -50,3 +50,14 @@ health:
 
 pilot-data:
 	python3 pilot/fibo-banking/load_aml_dataset.py
+
+generate-keys:
+	@bash infra/docker/generate_keys.sh
+
+clean:
+	cd $(DOCKER_DIR) && docker compose down -v --remove-orphans
+
+format:
+	@for svc in api query kg ingest sdl mcp audit worker; do \
+		cd apps/$$svc && ruff format . 2>/dev/null; cd ../..; \
+	done
