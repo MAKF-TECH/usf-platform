@@ -99,3 +99,21 @@ class ContextAmbiguousResponse(BaseModel):
     metric: str | None = None
     available_contexts: list[str] = Field(default_factory=list)
     hint: str = "Set X-USF-Context header"
+
+
+class AuditLog(SQLModel, table=True):
+    """Immutable audit trail for all query operations."""
+    __tablename__ = "audit_log"
+
+    id: uuid.UUID = SQLField(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = SQLField(foreign_key="user.id", index=True)
+    tenant_id: uuid.UUID = SQLField(foreign_key="tenant.id", index=True)
+    query_hash: str = SQLField(index=True)
+    context: str | None = None
+    metric: str | None = None
+    backend: str | None = None
+    abac_decision: str = SQLField(default="permit")
+    cache_hit: bool = SQLField(default=False)
+    execution_ms: float | None = None
+    created_at: datetime = SQLField(default_factory=utcnow, index=True)
+    error: str | None = None

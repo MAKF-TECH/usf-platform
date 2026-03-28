@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-RUN groupadd -r usf && useradd -r -g usf usf
+RUN groupadd -r -g 1000 usf && useradd -r -u 1000 -g usf usf
 
 WORKDIR /app
 

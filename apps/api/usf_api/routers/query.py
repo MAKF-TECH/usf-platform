@@ -29,81 +29,107 @@ async def run_query(
 ) -> dict[str, Any]:
     """
     Main query endpoint:
-    1. Extract context from header (or resolve/409 if ambiguous)
+    1. Extract / resolve context (or 409 if ambiguous)
     2. ABAC check via OPA
-    3. Check Valkey cache
-    4. Forward to usf-query
+    3. Check Valkey L2 cache
+    4. Forward to usf-query service if cache miss
     5. Wrap result in standard envelope + PROV-O
+    6. Write to Valkey cache
+    7. Write audit log entry
     """
-    user_id = claims["sub"]
-    tenant_id = claims["tenant_id"]
+    user_id_str = claims["sub"]
+    tenant_id_str = claims["tenant_id"]
+    user_id = uuid.UUID(user_id_str)
+    tenant_id = uuid.UUID(tenant_id_str)
     role = claims["role"]
     query_id = str(uuid.uuid4())
+    started_at = _utcnow()
 
     # Step 1: Resolve context
-    context = await resolve_context(
+    request.state.metric = req.metric
+    ctx_res: ContextResolution = await resolve_context(
         context_header=x_usf_context,
-        tenant_id=tenant_id,
+        tenant_id=tenant_id_str,
         metric_name=req.metric,
     )
+    context = ctx_res.context
 
-    # Step 2: ABAC check
-    abac_result = await check_permission(
-        user_id=user_id,
-        tenant_id=tenant_id,
+    # Step 2: ABAC check via OPA
+    user_claims = TokenClaims(
+        sub=user_id_str,
+        tenant_id=tenant_id_str,
         role=role,
-        action="query",
-        resource="metric",
-        resource_attrs={"name": req.metric, "context": context},
+        department=claims.get("department"),
+        clearance=claims.get("clearance", "internal"),
+        email=claims.get("email"),
     )
-    if not abac_result.get("allow"):
+    resource = ResourceRequest(context=context, metric=req.metric, action="read")
+    abac: ABACDecision = await check_abac(user_claims, resource)
+
+    if not abac.allow:
+        await _write_audit(
+            request=request, user_id=user_id, tenant_id=tenant_id,
+            query_hash="", context=context, metric=req.metric,
+            backend=None, abac_decision="deny", cache_hit=False,
+            execution_ms=None, error="ABAC denied",
+        )
         raise HTTPException(status_code=403, detail="Access denied by ABAC policy")
 
-    abac_decision = "permit"
-
-    # Step 3: Build query payload for usf-query
-    query_payload: dict[str, Any] = {
-        "context": context,
-        "tenant_id": tenant_id,
-    }
+    # Step 3: Build query payload
+    query_payload: dict[str, Any] = {"context": context, "tenant_id": tenant_id_str}
     if req.sparql:
         query_payload.update({"query": req.sparql, "query_type": "sparql"})
     elif req.sql:
         query_payload.update({"query": req.sql, "query_type": "sql"})
     elif req.question:
-        # NL query
-        pass
+        query_payload.update({
+            "question": req.question,
+            "ontology_context": "",
+            "max_results": req.max_results,
+        })
     elif req.metric:
-        # Compile metric to SQL
-        pass
+        query_payload.update({
+            "metric": req.metric,
+            "dimensions": req.dimensions,
+            "filters": req.filters,
+            "time_range": req.time_range,
+        })
 
-    # Apply ABAC row-level filters
-    if abac_result.get("filters"):
-        if "filters" not in query_payload:
-            query_payload["filters"] = {}
-        query_payload["filters"].update({"_abac_filter": abac_result["filters"]})
+    if abac.row_filters:
+        query_payload.setdefault("filters", {})
+        query_payload["filters"]["_abac"] = abac.row_filters
 
     query_hash = hashlib.sha256(str(query_payload).encode()).hexdigest()[:16]
 
-    # Step 4: Check cache
-    cache_key = make_query_cache_key(tenant_id, context, query_hash)
+    # Step 4: Check Valkey L2 cache
+    cache_key = make_query_cache_key(tenant_id_str, context, query_hash)
     cached = await get_cached(cache_key, request.app.state.cache)
     if cached:
-        logger.info("Serving from cache", cache_key=cache_key, query_id=query_id)
+        logger.info("Cache HIT", cache_key=cache_key)
+        ended_at = _utcnow()
+        await _write_audit(
+            request=request, user_id=user_id, tenant_id=tenant_id,
+            query_hash=query_hash, context=context, metric=req.metric,
+            backend=cached.get("data", {}).get("backend_used"),
+            abac_decision="permit", cache_hit=True,
+            execution_ms=(ended_at - started_at).total_seconds() * 1000,
+        )
         return cached
 
-    # Step 5: Forward to usf-query
+    # Step 5: Forward to usf-query service
+    query_result: dict[str, Any] = {}
+    backend_used: str | None = None
+
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             if req.question:
-                # NL query endpoint
                 resp = await client.post(
                     f"{settings.usf_query_url}/execute/nl",
                     json={
                         "question": req.question,
                         "context": context,
-                        "tenant_id": tenant_id,
-                        "ontology_context": "",  # TODO: fetch from KG
+                        "tenant_id": tenant_id_str,
+                        "ontology_context": "",
                         "max_results": req.max_results,
                     },
                 )
@@ -123,7 +149,10 @@ async def run_query(
                     json={
                         "metric_name": req.metric,
                         "context": context,
-                        "tenant_id": tenant_id,
+                        "tenant_id": tenant_id_str,
+                        "dimensions": req.dimensions,
+                        "filters": req.filters,
+                        "time_range": req.time_range,
                         "dialect": "postgres",
                     },
                 )
@@ -138,29 +167,49 @@ async def run_query(
 
             resp.raise_for_status()
             query_result = resp.json()
+            backend_used = query_result.get("backend_used")
+
     except httpx.HTTPError as exc:
+        ended_at = _utcnow()
         logger.error("usf-query request failed", error=str(exc), query_id=query_id)
+        await _write_audit(
+            request=request, user_id=user_id, tenant_id=tenant_id,
+            query_hash=query_hash, context=context, metric=req.metric,
+            backend=None, abac_decision="permit", cache_hit=False,
+            execution_ms=(ended_at - started_at).total_seconds() * 1000,
+            error=str(exc),
+        )
         raise HTTPException(status_code=502, detail=f"Query service error: {exc}")
 
-    # Step 6: Build PROV-O
-    backend = query_result.get("backend_used")
+    ended_at = _utcnow()
+
+    # PII field masking
+    if abac.pii_fields and isinstance(query_result.get("rows"), list):
+        for row in query_result["rows"]:
+            for field in abac.pii_fields:
+                if field in row:
+                    row[field] = "***"
+
+    # Step 6: Build PROV-O and wrap response
     prov_block = build_prov_o(
         query_id=query_id,
-        user_id=user_id,
-        tenant_id=tenant_id,
+        user_id=user_id_str,
+        tenant_id=tenant_id_str,
         context=context,
         query_hash=query_hash,
-        abac_decision=abac_decision,
-        backend=backend,
+        abac_decision="permit",
+        backend=backend_used,
     )
-
-    response = wrap(
-        data=query_result,
-        provenance=None,
-    )
+    response = wrap(data=query_result)
     response["provenance"] = prov_block
 
-    # Cache the result
+    # Step 7: Write to cache + audit log
     await set_cached(cache_key, response, request.app.state.cache)
+    await _write_audit(
+        request=request, user_id=user_id, tenant_id=tenant_id,
+        query_hash=query_hash, context=context, metric=req.metric,
+        backend=backend_used, abac_decision="permit", cache_hit=False,
+        execution_ms=(ended_at - started_at).total_seconds() * 1000,
+    )
 
     return response
