@@ -148,7 +148,7 @@ services:
       start_period: 45s
 
   opa:
-    image: openpolicyagent/opa:0.65.0-rootless
+    image: openpolicyagent/opa:latest-rootless
     container_name: usf-opa
     command: ["run", "--server", "--addr", "0.0.0.0:8181", "--log-format", "json", "/policies"]
     volumes:
