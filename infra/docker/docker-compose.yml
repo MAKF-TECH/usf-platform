@@ -27,7 +27,7 @@ x-common-env: &common-env
   DATABASE_URL: postgresql+psycopg://usf_app:changeme@postgres:5432/usf
   VALKEY_URL: redis://valkey:6379/0
   REDPANDA_BOOTSTRAP: redpanda:9092
-  QLEVER_SPARQL_ENDPOINT: http://qlever:7001/sparql
+  QLEVER_SPARQL_ENDPOINT: http://qlever:7001/query
   QLEVER_UPDATE_ENDPOINT: http://qlever:7001/update
   ARCADEDB_URL: http://arcadedb:2480
   ARCADEDB_DATABASE: usf
@@ -97,18 +97,19 @@ services:
       start_period: 20s
 
   qlever:
-    image: adfreiburg/qlever:latest
+    image: oxigraph/oxigraph:latest
     container_name: usf-qlever
+    command: serve --location /data --bind 0.0.0.0:7001
     volumes: [qlever_data:/data]
     ports: ["7001:7001"]
     networks: [usf-network]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:7001/ || exit 1"]
-      interval: 15s
-      timeout: 10s
+      test: ["CMD-SHELL", "curl -sf http://localhost:7001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 10s
 
   arcadedb:
     image: arcadedata/arcadedb:24.4.1
@@ -149,6 +150,7 @@ services:
 
   opa:
     image: openpolicyagent/opa:latest-rootless
+    platform: linux/arm64
     container_name: usf-opa
     command: ["run", "--server", "--addr", "0.0.0.0:8181", "--log-format", "json", "/policies"]
     volumes:
