@@ -1,0 +1,39 @@
+# Column mappings for common EHR exports
+# Maps raw EHR column names to FHIR R4 classes and properties
+source: generic_ehr_export
+
+columns:
+  PATIENT_ID:
+    fhir_class: "fhir:Patient"
+    property: "fhir:identifier"
+    pii: false
+  DATE_OF_BIRTH:
+    fhir_class: "fhir:Patient"
+    property: "fhir:birthDate"
+    pii: true
+  ADMISSION_DATE:
+    fhir_class: "fhir:Encounter"
+    property: "fhir:period.start"
+    pii: false
+  DISCHARGE_DATE:
+    fhir_class: "fhir:Encounter"
+    property: "fhir:period.end"
+    pii: false
+  DIAGNOSIS_CODE:
+    fhir_class: "fhir:Condition"
+    property: "fhir:code"
+    coding_system: "ICD-10"
+    pii: false
+  MEDICATION_CODE:
+    fhir_class: "fhir:Medication"
+    property: "fhir:code"
+    coding_system: "SNOMED-CT"
+    pii: false
+  WARD:
+    fhir_class: "fhir:Location"
+    property: "fhir:name"
+    pii: false
+  CLINICIAN_ID:
+    fhir_class: "fhir:Practitioner"
+    property: "fhir:identifier"
+    pii: true

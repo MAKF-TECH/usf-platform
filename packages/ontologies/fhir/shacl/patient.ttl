@@ -1,0 +1,40 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix fhir: <http://hl7.org/fhir/> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+fhir:PatientShape
+    a sh:NodeShape ;
+    sh:targetClass fhir:Patient ;
+    rdfs:label "FHIR Patient Shape" ;
+
+    sh:property [
+        sh:path fhir:identifier ;
+        sh:minCount 1 ;
+        sh:name "identifier" ;
+        sh:description "A business identifier for a patient (e.g., MRN)" ;
+    ] ;
+
+    sh:property [
+        sh:path fhir:name ;
+        sh:minCount 1 ;
+        sh:name "name" ;
+        sh:description "A name associated with the patient" ;
+    ] ;
+
+    sh:property [
+        sh:path fhir:birthDate ;
+        sh:minCount 1 ;
+        sh:datatype xsd:date ;
+        sh:name "birthDate" ;
+        sh:description "The date of birth for the patient" ;
+    ] ;
+
+    sh:property [
+        sh:path fhir:gender ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:in ( "male" "female" "other" "unknown" ) ;
+        sh:name "gender" ;
+        sh:description "Administrative gender of the patient" ;
+    ] .
