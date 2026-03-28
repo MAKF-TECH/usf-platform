@@ -129,7 +129,7 @@ services:
 
   # ── SIDECARS ──────────────────────────────────────────────────────
   ontop:
-    image: ontop/ontop-endpoint:5.1.0
+    image: ontop/ontop:latest
     container_name: usf-ontop
     environment:
       ONTOP_PORT: 8080
@@ -164,7 +164,7 @@ services:
       retries: 5
 
   wren-engine:
-    image: ghcr.io/canner/wren-engine:0.11.0
+    image: ghcr.io/canner/wren-engine:latest
     container_name: usf-wren-engine
     volumes:
       - wren_data:/var/wren
