@@ -1,0 +1,54 @@
+@prefix sh:    <http://www.w3.org/ns/shacl#> .
+@prefix rami:  <https://www.plattform-i40.de/ip/subnav/Standard#> .
+@prefix aas:   <https://admin-shell.io/aas/3/0/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+
+aas:AssetShape
+    a sh:NodeShape ;
+    sh:targetClass aas:Asset ;
+    rdfs:label "RAMI 4.0 AAS Asset Shape" ;
+
+    sh:property [
+        sh:path aas:AssetInformation.globalAssetId ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:anyURI ;
+        sh:name "globalAssetId" ;
+        sh:description "Globally unique identifier for the asset (IRI/UUID)" ;
+    ] ;
+
+    sh:property [
+        sh:path aas:Identifiable.id ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:anyURI ;
+        sh:name "id" ;
+        sh:description "Unique identifier of the Asset Administration Shell" ;
+    ] ;
+
+    sh:property [
+        sh:path aas:Referable.idShort ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:name "idShort" ;
+        sh:description "Short ID used within the AAS (PascalCase, no spaces)" ;
+        sh:pattern "^[A-Za-z][A-Za-z0-9_]{0,63}$" ;
+    ] ;
+
+    sh:property [
+        sh:path aas:AssetInformation.assetKind ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:in ( "Instance" "Type" ) ;
+        sh:name "assetKind" ;
+        sh:description "Whether the asset is an Instance or Type" ;
+    ] ;
+
+    sh:property [
+        sh:path aas:Submodel.submodels ;
+        sh:name "submodels" ;
+        sh:description "Submodels attached to this AAS (e.g., Nameplate, TechnicalData)" ;
+        sh:nodeKind sh:IRI ;
+    ] .

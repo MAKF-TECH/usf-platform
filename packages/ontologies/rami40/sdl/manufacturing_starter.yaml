@@ -1,0 +1,182 @@
+# RAMI 4.0 / AAS Manufacturing SDL starter
+# Digital Twin semantic layer for Industry 4.0 assets
+sdl_version: "1.0"
+ontology_module: rami40
+
+contexts:
+  - name: production
+    description: "Live production environment — real-time asset telemetry and OEE"
+  - name: maintenance
+    description: "Maintenance context — downtime events, work orders, and MTBF analysis"
+  - name: quality
+    description: "Quality control context — defect rates, process capability, SPC data"
+
+entities:
+  - name: DigitalAsset
+    ontology_class: "aas:Asset"
+    description: "A RAMI 4.0 digital asset with an Asset Administration Shell"
+    sql_table: digital_assets
+    contexts:
+      production:
+        description: "Asset in active production with live telemetry"
+      maintenance:
+        description: "Asset maintenance history and scheduled work"
+      quality:
+        description: "Asset quality capability data"
+    properties:
+      - name: asset_id
+        ontology_property: "aas:Identifiable.id"
+        sql_column: digital_assets.asset_id
+        type: anyURI
+        description: "Globally unique AAS asset identifier"
+      - name: id_short
+        ontology_property: "aas:Referable.idShort"
+        sql_column: digital_assets.id_short
+        type: string
+        description: "Short ID within the AAS hierarchy"
+      - name: asset_kind
+        ontology_property: "aas:AssetInformation.assetKind"
+        sql_column: digital_assets.asset_kind
+        type: string
+        allowed_values: [Instance, Type]
+        description: "Whether asset is an Instance or Type"
+      - name: global_asset_id
+        ontology_property: "aas:AssetInformation.globalAssetId"
+        sql_column: digital_assets.global_asset_id
+        type: anyURI
+        description: "Global asset identifier URI"
+      - name: asset_class
+        ontology_property: "aas:AssetInformation.assetType"
+        sql_column: digital_assets.asset_class
+        type: string
+        description: "Asset type classification (e.g., CNC_Machine, Conveyor, Robot)"
+    access_policy:
+      read: [role:operator, role:maintenance-engineer, role:quality-engineer, role:analyst]
+      pii: false
+
+  - name: AssetSubmodel
+    ontology_class: "aas:Submodel"
+    description: "An AAS submodel containing structured asset data (e.g., Nameplate, TechnicalData)"
+    sql_table: asset_submodels
+    contexts:
+      production:
+        description: "Production-relevant submodels (TechnicalData, OperationalData)"
+      maintenance:
+        description: "Maintenance-relevant submodels (MaintenanceDocumentation)"
+      quality:
+        description: "Quality submodels (QualityAssurance)"
+    properties:
+      - name: submodel_id
+        ontology_property: "aas:Identifiable.id"
+        sql_column: asset_submodels.submodel_id
+        type: anyURI
+      - name: semantic_id
+        ontology_property: "aas:HasSemantics.semanticId"
+        sql_column: asset_submodels.semantic_id
+        type: anyURI
+        nullable: true
+        description: "IRDI or IRI identifying the submodel semantics"
+      - name: submodel_kind
+        ontology_property: "aas:Submodel.kind"
+        sql_column: asset_submodels.kind
+        type: string
+        allowed_values: [Instance, Template]
+    access_policy:
+      read: [role:operator, role:maintenance-engineer, role:quality-engineer]
+      pii: false
+
+metrics:
+  - name: equipment_oee
+    ontology_class: "aas:SubmodelElement"
+    description: "Overall Equipment Effectiveness = Availability × Performance × Quality"
+    type: avg
+    measure: oee_percent
+    measure_entity: DigitalAsset
+    measure_sql: "availability_rate * performance_rate * quality_rate * 100"
+    dimensions:
+      - name: asset_class
+        entity: DigitalAsset
+        property: asset_class
+        ontology_property: "aas:AssetInformation.assetType"
+        description: "Type/class of the equipment"
+      - name: production_line
+        entity: DigitalAsset
+        property: production_line
+        ontology_property: "aas:Referable.category"
+        description: "Production line the asset belongs to"
+      - name: shift
+        entity: DigitalAsset
+        property: shift
+        ontology_property: "aas:SubmodelElementCollection.value"
+        description: "Production shift (morning, afternoon, night)"
+    contexts:
+      production:
+        description: "Real-time OEE per shift"
+      quality:
+        description: "OEE with quality loss breakdown"
+    time_grains: [day, week, month]
+    time_column: measurement_timestamp
+    time_entity: DigitalAsset
+    access_policy:
+      read: [role:operator, role:analyst, role:manager]
+      pii: false
+
+  - name: equipment_downtime_hours
+    ontology_class: "aas:SubmodelElement"
+    description: "Total unplanned downtime hours per equipment"
+    type: sum
+    measure: downtime_hours
+    measure_entity: DigitalAsset
+    measure_sql: "EXTRACT(EPOCH FROM (downtime_end - downtime_start)) / 3600"
+    dimensions:
+      - name: asset_class
+        entity: DigitalAsset
+        property: asset_class
+        ontology_property: "aas:AssetInformation.assetType"
+        description: "Equipment type"
+      - name: failure_mode
+        entity: DigitalAsset
+        property: failure_mode
+        ontology_property: "aas:SubmodelElementCollection.semanticId"
+        description: "Root cause category of downtime (mechanical, electrical, etc.)"
+    contexts:
+      maintenance:
+        description: "Downtime by failure mode for MTTR analysis"
+      production:
+        description: "Downtime impact on production output"
+    time_grains: [day, week, month, quarter]
+    time_column: downtime_start
+    time_entity: DigitalAsset
+    access_policy:
+      read: [role:maintenance-engineer, role:operator, role:manager]
+      pii: false
+
+  - name: production_throughput
+    ontology_class: "aas:SubmodelElement"
+    description: "Units produced per hour across production lines"
+    type: avg
+    measure: units_per_hour
+    measure_entity: DigitalAsset
+    measure_sql: "units_produced / NULLIF(runtime_hours, 0)"
+    dimensions:
+      - name: production_line
+        entity: DigitalAsset
+        property: production_line
+        ontology_property: "aas:Referable.category"
+        description: "Production line identifier"
+      - name: product_type
+        entity: DigitalAsset
+        property: product_type
+        ontology_property: "aas:SubmodelElementCollection.value"
+        description: "Product type being manufactured"
+    contexts:
+      production:
+        description: "Real-time throughput per shift"
+      quality:
+        description: "Throughput adjusted for scrap/rework"
+    time_grains: [day, week, month]
+    time_column: production_timestamp
+    time_entity: DigitalAsset
+    access_policy:
+      read: [role:operator, role:analyst, role:manager]
+      pii: false
