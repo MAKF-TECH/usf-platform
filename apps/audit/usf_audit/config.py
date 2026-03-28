@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     OPENLINEAGE_TOPIC: str = "openlineage.events"
     SERVICE_NAME: str = "usf-audit"
     LOG_LEVEL: str = "INFO"
+    EGERIA_URL: str | None = None
 
 
 @lru_cache
