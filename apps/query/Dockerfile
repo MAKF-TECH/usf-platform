@@ -1,37 +1,24 @@
+# ── Builder ────────────────────────────────────────────────────────
+FROM python:3.12-slim AS builder
+WORKDIR /build
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+COPY packages/core /build/packages/core
+COPY packages/rdf /build/packages/rdf
+COPY packages/sdl-schema /build/packages/sdl-schema
+COPY apps/query /build/app
+RUN pip install --no-cache-dir -e ./packages/core -e ./packages/rdf -e ./packages/sdl-schema -e ./app
+
+# ── Runtime ───────────────────────────────────────────────────────
 FROM python:3.12-slim
-
-# Non-root user
-RUN groupadd -r usf && useradd -r -g usf usf
-
-WORKDIR /app
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc libpq-dev curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy packages first (for layer caching)
-COPY packages/core /app/packages/core
-COPY packages/rdf /app/packages/rdf
-COPY packages/sdl-schema /app/packages/sdl-schema
-
-# Copy service
-COPY apps/query /app/apps/query
-
-WORKDIR /app/apps/query
-
-# Install dependencies
-RUN pip install --no-cache-dir \
-    /app/packages/core \
-    /app/packages/rdf \
-    /app/packages/sdl-schema \
-    -e .
-
+RUN apt-get update && apt-get install -y --no-install-recommends curl libpq5 && rm -rf /var/lib/apt/lists/*
+RUN groupadd -r -g 1000 usf && useradd -r -u 1000 -g usf usf
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /build /build
+WORKDIR /build/app
 USER usf
-
-EXPOSE 8000
+EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-CMD ["uvicorn", "usf_query.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+    CMD curl -f http://localhost:8001/health || exit 1
+CMD ["uvicorn", "usf_query.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "2"]

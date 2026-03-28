@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "usf-ingest"
 version = "0.1.0"
-description = "USF Ingest Service — structured + semi-structured ingestion paths"
+description = "USF Ingest Service"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
@@ -23,8 +23,6 @@ dependencies = [
     "aiokafka>=0.11",
     "openlineage-python>=1.0",
     "opentelemetry-sdk>=1.25",
-    "opentelemetry-instrumentation-fastapi>=0.46b0",
-    "opentelemetry-exporter-otlp-proto-grpc>=1.25",
     "openai>=1.30",
     "fhir.resources>=7.0",
     "cimpy>=0.3",
@@ -34,20 +32,19 @@ dependencies = [
     "pydantic-settings>=2.0",
     "alembic>=1.13",
     "python-multipart>=0.0.9",
+    "usf-core",
+    "usf-rdf",
+    "usf-sdl-schema",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest-cov>=4.0",
-    "pytest>=8.0",
-    "pytest-asyncio>=0.23",
-    "httpx",
-    "ruff",
-    "mypy",
-]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff", "mypy"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["usf_ingest"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.ruff]
 line-length = 100

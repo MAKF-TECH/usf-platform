@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     service_name: str = "usf-mcp"
     usf_api_url: str = "http://usf-api:8000"
     service_token: str = ""  # Service-to-service JWT or API key
-    mcp_port: int = 9000
+    mcp_port: int = 8005
 
 
 settings = Settings()

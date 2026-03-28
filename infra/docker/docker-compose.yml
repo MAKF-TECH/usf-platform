@@ -1,9 +1,5 @@
 # USF Platform — Docker Compose (Local Development)
-# Version: 1.0.0 | Author: usf-architect | Date: 2026-03-27
-#
-# Usage: docker compose up -d
-# Services: 9 USF app services + 8 sidecars
-#
+# Version: 1.1.0 | Author: usf-docker-agent | Date: 2026-03-28
 name: usf-platform
 
 networks:
@@ -16,6 +12,7 @@ volumes:
   arcadedb_data:
   valkey_data:
   redpanda_data:
+  grafana_data:
   opa_bundles:
   ontop_data:
   wren_data:
@@ -44,8 +41,7 @@ x-common-env: &common-env
   LLM_MODEL: gemini-1.5-pro
 
 services:
-  # ── SIDECARS ──────────────────────────────────────────────────────
-
+  # ── DATABASES ─────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: usf-postgres
@@ -53,8 +49,7 @@ services:
       POSTGRES_USER: usf_app
       POSTGRES_PASSWORD: changeme
       POSTGRES_DB: usf
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    volumes: [postgres_data:/var/lib/postgresql/data]
     ports: ["5432:5432"]
     networks: [usf-network]
     restart: unless-stopped
@@ -132,6 +127,7 @@ services:
       retries: 5
       start_period: 30s
 
+  # ── SIDECARS ──────────────────────────────────────────────────────
   ontop:
     image: ontop/ontop-endpoint:5.1.0
     container_name: usf-ontop
@@ -182,12 +178,60 @@ services:
       timeout: 10s
       retries: 5
 
-  # ── USF SERVICES ─────────────────────────────────────────────────
+  # ── OBSERVABILITY ─────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: usf-prometheus
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=7d"]
+    volumes: [./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro]
+    ports: ["9090:9090"]
+    networks: [usf-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
+  loki:
+    image: grafana/loki:2.9.6
+    container_name: usf-loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports: ["3100:3100"]
+    networks: [usf-network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: usf-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports: ["3000:3000"]
+    networks: [usf-network]
+    restart: unless-stopped
+    depends_on:
+      prometheus: {condition: service_healthy}
+      loki: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ── USF SERVICES ─────────────────────────────────────────────────
   usf-api:
-    build:
-      context: ../../
-      dockerfile: apps/api/Dockerfile
+    build: {context: ../../, dockerfile: apps/api/Dockerfile}
     container_name: usf-api
     environment:
       <<: *common-env
@@ -196,8 +240,8 @@ services:
       JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private.pem
       QUERY_SERVICE_URL: http://usf-query:8001
       KG_SERVICE_URL: http://usf-kg:8002
-      SDL_SERVICE_URL: http://usf-sdl:8003
-      AUDIT_SERVICE_URL: http://usf-audit:8005
+      SDL_SERVICE_URL: http://usf-sdl:8004
+      AUDIT_SERVICE_URL: http://usf-audit:8006
       CORS_ORIGINS: '["http://localhost:4200"]'
     volumes:
       - ./secrets/jwt_public.pem:/run/secrets/jwt_public.pem:ro
@@ -219,9 +263,7 @@ services:
       start_period: 30s
 
   usf-query:
-    build:
-      context: ../../
-      dockerfile: apps/query/Dockerfile
+    build: {context: ../../, dockerfile: apps/query/Dockerfile}
     container_name: usf-query
     environment:
       <<: *common-env
@@ -244,9 +286,7 @@ services:
       start_period: 30s
 
   usf-kg:
-    build:
-      context: ../../
-      dockerfile: apps/kg/Dockerfile
+    build: {context: ../../, dockerfile: apps/kg/Dockerfile}
     container_name: usf-kg
     environment:
       <<: *common-env
@@ -269,19 +309,17 @@ services:
       start_period: 30s
 
   usf-ingest:
-    build:
-      context: ../../
-      dockerfile: apps/ingest/Dockerfile
+    build: {context: ../../, dockerfile: apps/ingest/Dockerfile}
     container_name: usf-ingest
     environment:
       <<: *common-env
       SERVICE_NAME: usf-ingest
-      API_PORT: "8004"
+      API_PORT: "8003"
       KG_SERVICE_URL: http://usf-kg:8002
       CELERY_BROKER_URL: redis://valkey:6379/1
       CELERY_RESULT_BACKEND: db+postgresql+psycopg://usf_app:changeme@postgres:5432/usf
       DOCLING_DEVICE: cpu
-    ports: ["8004:8004"]
+    ports: ["8003:8003"]
     networks: [usf-network]
     restart: unless-stopped
     depends_on:
@@ -289,95 +327,84 @@ services:
       valkey: {condition: service_healthy}
       usf-kg: {condition: service_healthy}
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8004/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8003/health || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5
       start_period: 30s
 
   usf-sdl:
-    build:
-      context: ../../
-      dockerfile: apps/sdl/Dockerfile
+    build: {context: ../../, dockerfile: apps/sdl/Dockerfile}
     container_name: usf-sdl
     environment:
       <<: *common-env
       SERVICE_NAME: usf-sdl
-      API_PORT: "8003"
+      API_PORT: "8004"
       SDL_STORAGE_PATH: /data/sdl
     volumes: [sdl_storage:/data/sdl]
-    ports: ["8003:8003"]
+    ports: ["8004:8004"]
     networks: [usf-network]
     restart: unless-stopped
     depends_on:
       postgres: {condition: service_healthy}
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8003/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8004/health || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5
       start_period: 20s
 
   usf-mcp:
-    build:
-      context: ../../
-      dockerfile: apps/mcp/Dockerfile
+    build: {context: ../../, dockerfile: apps/mcp/Dockerfile}
     container_name: usf-mcp
     environment:
       <<: *common-env
       SERVICE_NAME: usf-mcp
-      MCP_PORT: "8006"
+      MCP_PORT: "8005"
       MCP_TRANSPORT: sse
       API_SERVICE_URL: http://usf-api:8000
-    ports: ["8006:8006"]
-    networks: [usf-network]
-    restart: unless-stopped
-    depends_on:
-      usf-api: {condition: service_healthy}
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8006/health || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-
-  usf-audit:
-    build:
-      context: ../../
-      dockerfile: apps/audit/Dockerfile
-    container_name: usf-audit
-    environment:
-      <<: *common-env
-      SERVICE_NAME: usf-audit
-      API_PORT: "8005"
-      AUDIT_RETENTION_YEARS: "7"
-      EXPORT_STORAGE_PATH: /data/audit-exports
-    volumes: [audit_exports:/data/audit-exports]
     ports: ["8005:8005"]
     networks: [usf-network]
     restart: unless-stopped
     depends_on:
-      postgres: {condition: service_healthy}
-      redpanda: {condition: service_healthy}
+      usf-api: {condition: service_healthy}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8005/health || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5
 
+  usf-audit:
+    build: {context: ../../, dockerfile: apps/audit/Dockerfile}
+    container_name: usf-audit
+    environment:
+      <<: *common-env
+      SERVICE_NAME: usf-audit
+      API_PORT: "8006"
+      AUDIT_RETENTION_YEARS: "7"
+      EXPORT_STORAGE_PATH: /data/audit-exports
+    volumes: [audit_exports:/data/audit-exports]
+    ports: ["8006:8006"]
+    networks: [usf-network]
+    restart: unless-stopped
+    depends_on:
+      postgres: {condition: service_healthy}
+      redpanda: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8006/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
   usf-worker:
-    build:
-      context: ../../
-      dockerfile: apps/worker/Dockerfile
+    build: {context: ../../, dockerfile: apps/worker/Dockerfile}
     container_name: usf-worker
     environment:
       <<: *common-env
       SERVICE_NAME: usf-worker
       CELERY_BROKER_URL: redis://valkey:6379/1
       CELERY_RESULT_BACKEND: db+postgresql+psycopg://usf_app:changeme@postgres:5432/usf
-    command: >
-      celery -A usf_worker.celery_app worker
-      --loglevel=info --concurrency=4
-      --queues=default,ingest,sdl,cache
+    command: celery -A usf_worker.celery_app worker --loglevel=info --concurrency=4 --queues=default,ingest,sdl,cache
     networks: [usf-network]
     restart: unless-stopped
     depends_on:
@@ -409,11 +436,9 @@ services:
       timeout: 5s
       retries: 3
 
-  # Celery Flower (monitoring) — start with: docker compose --profile monitoring up
+  # Celery Flower — start with: docker compose --profile monitoring up
   usf-flower:
-    build:
-      context: ../../
-      dockerfile: apps/worker/Dockerfile
+    build: {context: ../../, dockerfile: apps/worker/Dockerfile}
     container_name: usf-flower
     command: celery -A usf_worker.celery_app flower --port=5555 --broker=redis://valkey:6379/1
     environment:

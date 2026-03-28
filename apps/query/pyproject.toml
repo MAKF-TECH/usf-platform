@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "usf-query"
 version = "0.1.0"
-description = "USF Query Service — SQL, SPARQL, NL2SPARQL, OG-RAG"
+description = "USF Query Service"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
@@ -22,6 +22,9 @@ dependencies = [
     "usf-rdf",
     "usf-sdl-schema",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff", "mypy"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["usf_query"]
