@@ -1,0 +1,113 @@
+# IEC CIM Energy SDL starter
+# Grid asset and measurement semantic layer
+sdl_version: "1.0"
+ontology_module: iec-cim
+
+contexts:
+  - name: operations
+    description: "Real-time grid operations — live SCADA/EMS data"
+  - name: planning
+    description: "Grid planning and investment — historical aggregates"
+
+entities:
+  - name: GridEquipment
+    ontology_class: "cim:Equipment"
+    description: "A physical grid asset such as a line, transformer, or generator"
+    sql_table: grid_equipment
+    contexts:
+      operations:
+        description: "Live asset status and real-time measurements"
+      planning:
+        description: "Asset capacity, age, and investment metadata"
+    properties:
+      - name: mrid
+        ontology_property: "cim:IdentifiedObject.mRID"
+        sql_column: grid_equipment.mrid
+        type: string
+        description: "Master resource identifier (UUID)"
+      - name: name
+        ontology_property: "cim:IdentifiedObject.name"
+        sql_column: grid_equipment.name
+        type: string
+        description: "Human-readable equipment name"
+      - name: voltage_level
+        ontology_property: "cim:ConductingEquipment.BaseVoltage"
+        sql_column: grid_equipment.base_voltage_kv
+        type: decimal
+        description: "Base voltage in kilovolts"
+      - name: in_service
+        ontology_property: "cim:Equipment.inService"
+        sql_column: grid_equipment.in_service
+        type: boolean
+        description: "Whether the equipment is currently in service"
+    access_policy:
+      read: [role:grid-operator, role:planner, role:analyst]
+      pii: false
+
+  - name: GridMeasurement
+    ontology_class: "cim:Measurement"
+    description: "A measurement point on a grid asset (power, voltage, current)"
+    sql_table: measurements
+    contexts:
+      operations:
+        description: "Real-time 15-minute interval measurements"
+      planning:
+        description: "Monthly aggregated measurement data"
+    properties:
+      - name: measurement_id
+        ontology_property: "cim:IdentifiedObject.mRID"
+        sql_column: measurements.mrid
+        type: string
+      - name: measurement_type
+        ontology_property: "cim:Measurement.measurementType"
+        sql_column: measurements.measurement_type
+        type: string
+        description: "e.g., ThreePhaseActivePower, Voltage"
+      - name: unit_symbol
+        ontology_property: "cim:Measurement.unitSymbol"
+        sql_column: measurements.unit_symbol
+        type: string
+        description: "SI unit (W, V, A, VA, var)"
+      - name: value
+        ontology_property: "cim:MeasurementValue.value"
+        sql_column: measurements.value
+        type: decimal
+    access_policy:
+      read: [role:grid-operator, role:planner, role:analyst]
+      pii: false
+
+metrics:
+  - name: grid_load_factor
+    ontology_class: "cim:Measurement"
+    description: "Average active power load factor across grid equipment"
+    type: avg
+    measure: active_power_mw
+    measure_entity: GridMeasurement
+    measure_sql: "value / rated_capacity_mw"
+    dimensions:
+      - name: region
+        entity: GridEquipment
+        property: region
+        ontology_property: "cim:SubGeographicalRegion.Region"
+        description: "Geographic grid region"
+      - name: voltage_level
+        entity: GridEquipment
+        property: voltage_level
+        ontology_property: "cim:ConductingEquipment.BaseVoltage"
+        description: "Base voltage level (kV)"
+      - name: equipment_type
+        entity: GridEquipment
+        property: equipment_type
+        ontology_property: "cim:IdentifiedObject.aliasName"
+        description: "Equipment type (line, transformer, generator)"
+    contexts:
+      operations:
+        description: "Real-time 15-min interval load factor"
+      planning:
+        description: "Monthly averages for capacity planning"
+    time_grains: [day, week, month, quarter]
+    time_column: measurement_timestamp
+    time_entity: GridMeasurement
+    access_policy:
+      read: [role:grid-operator, role:planner, role:analyst]
+      pii: false
