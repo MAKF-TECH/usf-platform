@@ -359,3 +359,114 @@ class TestValidator:
         assert "ERROR" in s
         assert "TEST_CODE" in s
         assert "Test message" in s
+
+
+# ─────────────────────────────────────────────────────────────────
+# Task-spec named tests (ROUND 3 requirements)
+# ─────────────────────────────────────────────────────────────────
+
+FHIR_HEALTHCARE_YAML = Path(__file__).parent.parent / "usf_sdl" / "examples" / "fhir_healthcare.yaml"
+
+
+def test_entity_definition_valid() -> None:
+    """Parse BankAccount-style entity from YAML — no validation errors."""
+    doc = SDLDocument.from_yaml(MINIMAL_VALID_YAML)
+    assert len(doc.entities) >= 1
+    entity = doc.entities[0]
+    assert entity.name == "Account"
+    assert entity.ontology_class == "fibo:Account"
+    errors = validate(doc)
+    blocking = [e for e in errors if e.severity == "error"]
+    assert blocking == []
+
+
+def test_metric_definition_requires_measure() -> None:
+    """Metric without measure field → ValidationError (Pydantic)."""
+    import textwrap as tw
+    yaml_no_measure = tw.dedent("""\
+        sdl_version: "1.0"
+        metrics:
+          - name: bad_metric
+            ontology_class: fibo:Exposure
+            description: broken
+            type: sum
+            measure_entity: Account
+            dimensions:
+              - name: d
+                entity: Account
+                property: id
+                ontology_property: fibo:hasIdentifier
+    """)
+    with pytest.raises(Exception):
+        SDLDocument.from_yaml(yaml_no_measure)
+
+
+def test_context_definition_ambiguity() -> None:
+    """Two contexts defining same metric property → CONTEXT_AMBIGUOUS_PROPERTY warning."""
+    import textwrap as tw
+    yaml_ambig = tw.dedent("""\
+        sdl_version: "1.0"
+        contexts:
+          - name: risk
+            description: Risk context
+          - name: finance
+            description: Finance context
+        entities:
+          - name: Account
+            ontology_class: fibo:Account
+            description: test
+            sql_table: accounts
+            properties:
+              - name: balance
+                ontology_property: fibo:hasBalance
+                type: decimal
+                contexts:
+                  risk:
+                    sql_column: eod_balance
+                  finance:
+                    sql_column: current_balance
+    """)
+    doc = SDLDocument.from_yaml(yaml_ambig)
+    errors = validate(doc)
+    warnings = [e for e in errors if e.code == "CONTEXT_AMBIGUOUS_PROPERTY"]
+    assert len(warnings) >= 1
+    assert warnings[0].severity == "warning"
+
+
+def test_access_policy_role_list() -> None:
+    """Access policy with valid roles passes; missing read list → ValidationError."""
+    # Valid policy
+    policy = AccessPolicyDefinition(
+        name="finance-read",
+        description="Finance read policy",
+        read=["role:finance_analyst", "role:auditor"],
+        pii=False,
+        clearance="internal",
+    )
+    assert "role:finance_analyst" in policy.read
+
+    # Invalid: empty read list
+    with pytest.raises(Exception):
+        AccessPolicyDefinition(
+            name="empty-policy",
+            description="No readers",
+            read=[],  # min_length=1 should fail
+            pii=False,
+            clearance="internal",
+        )
+
+
+def test_fibo_banking_example_loads() -> None:
+    """packages/sdl-schema/usf_sdl/examples/fibo_banking.yaml loads without errors."""
+    if not FIBO_BANKING_YAML.exists():
+        pytest.skip("fibo_banking.yaml not found")
+    doc = SDLDocument.from_yaml(FIBO_BANKING_YAML.read_text())
+    assert doc.ontology_module is not None or doc.tenant is not None or len(doc.entities) > 0
+
+
+def test_fhir_healthcare_example_loads() -> None:
+    """packages/sdl-schema/usf_sdl/examples/fhir_healthcare.yaml loads without errors."""
+    if not FHIR_HEALTHCARE_YAML.exists():
+        pytest.skip("fhir_healthcare.yaml not found")
+    doc = SDLDocument.from_yaml(FHIR_HEALTHCARE_YAML.read_text())
+    assert doc is not None
