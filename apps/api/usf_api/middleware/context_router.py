@@ -130,7 +130,6 @@ async def resolve_context(
             inferred=False,
         )
 
-    # No context header: check metric ambiguity
     if metric_name:
         metric_contexts = await _get_contexts_for_metric(tenant_id, metric_name)
         if len(metric_contexts) == 0:
