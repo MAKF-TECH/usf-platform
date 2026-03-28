@@ -3,13 +3,14 @@ import {
   signal, computed, effect, ViewChild, ElementRef
 } from '@angular/core';
 import { NgxEchartsDirective } from 'ngx-echarts';
+import { TitleCasePipe } from '@angular/common';
 import type { EChartsOption } from 'echarts';
 import { KgNode, KgEdge } from '../../../core/models';
 
 @Component({
   selector: 'usf-graph-viewer',
   standalone: true,
-  imports: [NgxEchartsDirective],
+  imports: [NgxEchartsDirective, TitleCasePipe],
   templateUrl: './graph-viewer.component.html',
   styleUrl: './graph-viewer.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
