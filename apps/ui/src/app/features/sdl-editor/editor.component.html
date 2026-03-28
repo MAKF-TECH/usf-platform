@@ -14,12 +14,13 @@
         <span class="text-xs text-muted font-semibold">SDL Source (YAML)</span>
         <span class="badge badge-neutral font-mono">risk.sdl.yaml</span>
       </div>
-      <ngx-monaco-editor
+      <textarea
         class="sdl-monaco-editor"
-        [options]="editorOptions()"
         [ngModel]="sdlSource()"
         (ngModelChange)="onSdlChange($event)"
-      />
+        spellcheck="false"
+        autocomplete="off"
+      ></textarea>
     </div>
 
     <!-- Right: Preview tabs -->

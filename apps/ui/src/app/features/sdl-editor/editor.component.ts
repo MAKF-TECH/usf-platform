@@ -3,12 +3,11 @@ import {
 } from '@angular/core';
 import { UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 
 @Component({
   selector: 'usf-sdl-editor',
   standalone: true,
-  imports: [UpperCasePipe, FormsModule, MonacoEditorModule],
+  imports: [UpperCasePipe, FormsModule],
   templateUrl: './editor.component.html',
   styleUrl: './editor.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
