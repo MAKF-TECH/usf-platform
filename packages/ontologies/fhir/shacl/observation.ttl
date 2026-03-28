@@ -1,0 +1,40 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix fhir: <http://hl7.org/fhir/> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+fhir:ObservationShape
+    a sh:NodeShape ;
+    sh:targetClass fhir:Observation ;
+    rdfs:label "FHIR Observation Shape" ;
+
+    sh:property [
+        sh:path fhir:code ;
+        sh:minCount 1 ;
+        sh:name "code" ;
+        sh:description "Type of observation (e.g., LOINC code)" ;
+    ] ;
+
+    sh:property [
+        sh:path fhir:status ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:in ( "registered" "preliminary" "final" "amended" "corrected" "cancelled" "entered-in-error" "unknown" ) ;
+        sh:name "status" ;
+        sh:description "The status of the result value" ;
+    ] ;
+
+    sh:property [
+        sh:path fhir:subject ;
+        sh:minCount 1 ;
+        sh:name "subject" ;
+        sh:description "Who/what the observation is about (reference to Patient)" ;
+        sh:nodeKind sh:IRI ;
+    ] ;
+
+    sh:property [
+        sh:path fhir:effectiveDateTime ;
+        sh:datatype xsd:dateTime ;
+        sh:name "effectiveDateTime" ;
+        sh:description "Clinically relevant time/time-period for observation" ;
+    ] .

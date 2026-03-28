@@ -1,0 +1,49 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix cim:  <http://iec.ch/TC57/CIM100#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+cim:MeasurementShape
+    a sh:NodeShape ;
+    sh:targetClass cim:Measurement ;
+    rdfs:label "IEC CIM Measurement Shape" ;
+
+    sh:property [
+        sh:path cim:IdentifiedObject.mRID ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:name "mRID" ;
+    ] ;
+
+    sh:property [
+        sh:path cim:Measurement.measurementType ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:name "measurementType" ;
+        sh:description "Type of measurement (e.g., ThreePhaseActivePower, Voltage)" ;
+    ] ;
+
+    sh:property [
+        sh:path cim:Measurement.unitSymbol ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:name "unitSymbol" ;
+        sh:description "SI unit symbol for the measurement (e.g., W, V, A, VA)" ;
+    ] ;
+
+    sh:property [
+        sh:path cim:Measurement.PowerSystemResource ;
+        sh:name "PowerSystemResource" ;
+        sh:description "The power system resource that contains the measurement" ;
+        sh:nodeKind sh:IRI ;
+    ] ;
+
+    sh:property [
+        sh:path cim:Measurement.Terminal ;
+        sh:name "Terminal" ;
+        sh:description "Terminal to which the measurement is bound" ;
+        sh:nodeKind sh:IRI ;
+    ] .

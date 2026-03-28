@@ -1,0 +1,47 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix fhir: <http://hl7.org/fhir/> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+fhir:MedicationRequestShape
+    a sh:NodeShape ;
+    sh:targetClass fhir:MedicationRequest ;
+    rdfs:label "FHIR MedicationRequest Shape" ;
+
+    sh:property [
+        sh:path fhir:status ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:in ( "active" "on-hold" "cancelled" "completed" "entered-in-error" "stopped" "draft" "unknown" ) ;
+        sh:name "status" ;
+    ] ;
+
+    sh:property [
+        sh:path fhir:intent ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:in ( "proposal" "plan" "order" "original-order" "reflex-order" "filler-order" "instance-order" "option" ) ;
+        sh:name "intent" ;
+    ] ;
+
+    sh:property [
+        sh:path fhir:medication ;
+        sh:minCount 1 ;
+        sh:name "medication" ;
+        sh:description "Medication requested (reference or coded concept)" ;
+    ] ;
+
+    sh:property [
+        sh:path fhir:subject ;
+        sh:minCount 1 ;
+        sh:name "subject" ;
+        sh:description "Patient for whom medication is requested" ;
+        sh:nodeKind sh:IRI ;
+    ] ;
+
+    sh:property [
+        sh:path fhir:authoredOn ;
+        sh:datatype xsd:dateTime ;
+        sh:name "authoredOn" ;
+        sh:description "When the request was initially authored" ;
+    ] .

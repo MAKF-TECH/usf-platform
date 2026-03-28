@@ -1,0 +1,103 @@
+# Healthcare SDL starter using FHIR R4
+# Validated against USF SDL Schema v1.0
+sdl_version: "1.0"
+ontology_module: fhir
+
+contexts:
+  - name: clinical
+    description: "Clinical care context — patient-facing data with full PII"
+    named_graph_uri: "usf://{tenant}/context/clinical/v1"
+  - name: research
+    description: "De-identified research cohort — no PII"
+    named_graph_uri: "usf://{tenant}/context/research/v1"
+
+entities:
+  - name: Patient
+    ontology_class: "fhir:Patient"
+    description: "A healthcare patient enrolled in care"
+    sql_table: patients
+    contexts:
+      clinical:
+        description: "Full patient record with PII"
+      research:
+        description: "De-identified patient record (no PII)"
+    properties:
+      - name: patient_id
+        ontology_property: "fhir:identifier"
+        sql_column: patients.patient_id
+        type: string
+        description: "Unique patient identifier (MRN)"
+      - name: age
+        ontology_property: "fhir:age"
+        sql_column: patients.age
+        type: integer
+        description: "Patient age in years (derived, de-identified in research context)"
+        contexts:
+          research:
+            sql_column: patients.age_band
+    access_policy:
+      read: [role:clinician, role:researcher]
+      pii: true
+
+  - name: Encounter
+    ontology_class: "fhir:Encounter"
+    description: "A clinical encounter or hospital admission"
+    sql_table: encounters
+    contexts:
+      clinical:
+        description: "Full encounter record"
+      research:
+        description: "Anonymised encounter data"
+    properties:
+      - name: encounter_id
+        ontology_property: "fhir:identifier"
+        sql_column: encounters.encounter_id
+        type: string
+      - name: admission_date
+        ontology_property: "fhir:period"
+        sql_column: encounters.admission_date
+        type: date
+      - name: discharge_date
+        ontology_property: "fhir:period"
+        sql_column: encounters.discharge_date
+        type: date
+        nullable: true
+    access_policy:
+      read: [role:clinician, role:researcher, role:admin]
+      pii: false
+
+metrics:
+  - name: average_length_of_stay
+    ontology_class: "fhir:Observation"
+    description: "Average inpatient length of stay in days"
+    type: avg
+    measure: length_of_stay_days
+    measure_entity: Encounter
+    measure_sql: "EXTRACT(DAY FROM discharge_date - admission_date)"
+    dimensions:
+      - name: diagnosis_code
+        entity: Encounter
+        property: diagnosis_code
+        ontology_property: "fhir:code"
+        description: "ICD-10 diagnosis code"
+      - name: ward
+        entity: Encounter
+        property: ward
+        ontology_property: "fhir:location"
+        description: "Hospital ward"
+      - name: admission_type
+        entity: Encounter
+        property: admission_type
+        ontology_property: "fhir:class"
+        description: "Type of admission (elective, emergency, etc.)"
+    contexts:
+      clinical:
+        filter: "discharge_date IS NOT NULL"
+      research:
+        filter: "discharge_date IS NOT NULL AND patient_consent = true"
+    time_grains: [week, month, quarter]
+    time_column: admission_date
+    time_entity: Encounter
+    access_policy:
+      read: [role:clinician, role:researcher, role:admin]
+      pii: false

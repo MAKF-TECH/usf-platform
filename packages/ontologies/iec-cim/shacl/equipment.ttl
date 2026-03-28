@@ -1,0 +1,42 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix cim:  <http://iec.ch/TC57/CIM100#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+cim:EquipmentShape
+    a sh:NodeShape ;
+    sh:targetClass cim:Equipment ;
+    rdfs:label "IEC CIM Equipment Shape" ;
+
+    sh:property [
+        sh:path cim:IdentifiedObject.mRID ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:name "mRID" ;
+        sh:description "Master resource identifier — globally unique UUID per CIM convention" ;
+        sh:pattern "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$" ;
+    ] ;
+
+    sh:property [
+        sh:path cim:IdentifiedObject.name ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:name "name" ;
+        sh:description "Human-readable name of the equipment" ;
+    ] ;
+
+    sh:property [
+        sh:path cim:Equipment.inService ;
+        sh:datatype xsd:boolean ;
+        sh:name "inService" ;
+        sh:description "If true, the equipment is in service" ;
+    ] ;
+
+    sh:property [
+        sh:path cim:Equipment.EquipmentContainer ;
+        sh:name "EquipmentContainer" ;
+        sh:description "Container (e.g., Substation, VoltageLevel) for this equipment" ;
+        sh:nodeKind sh:IRI ;
+    ] .
