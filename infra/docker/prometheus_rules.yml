@@ -1,0 +1,41 @@
+groups:
+  - name: usf_slo
+    interval: 1m
+    rules:
+      - record: usf:query_latency_p95
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~"usf-.*"}[5m]))
+
+      - record: usf:error_rate
+        expr: rate(http_requests_total{job=~"usf-.*",status=~"5.."}[5m]) / rate(http_requests_total{job=~"usf-.*"}[5m])
+
+      - record: usf:cache_hit_rate
+        expr: rate(valkey_keyspace_hits_total[5m]) / (rate(valkey_keyspace_hits_total[5m]) + rate(valkey_keyspace_misses_total[5m]))
+
+      - record: usf:ingestion_throughput
+        expr: rate(usf_triples_ingested_total[5m])
+
+  - name: usf_alerts
+    rules:
+      - alert: USFServiceDown
+        expr: up{job=~"usf-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "USF service {{ $labels.job }} is down"
+
+      - alert: USFHighErrorRate
+        expr: usf:error_rate > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "USF error rate above 5% on {{ $labels.job }}"
+
+      - alert: USFLowCacheHitRate
+        expr: usf:cache_hit_rate < 0.7
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cache hit rate below 70%"

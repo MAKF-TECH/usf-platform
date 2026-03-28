@@ -44,6 +44,11 @@
         </div>
       }
 
+      <div class="entity-actions" style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-primary" style="flex:1" (click)="exploreNeighbors()">🔍 Explore Neighbors</button>
+        <button class="btn btn-ghost" style="flex:1" (click)="resetGraph()">↻ Reset</button>
+      </div>
+
       <div class="entity-prov">
         <usf-prov-o-panel [provenance]="entityProvenance()" />
       </div>
